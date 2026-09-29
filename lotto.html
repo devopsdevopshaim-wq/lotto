@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+  <meta charset="utf-8">
+  <title>Lotto — פרימיום חיזוי (כוונון משקלים)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+
+  <!-- Bootstrap 5 -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+
+  <!-- custom style (external) -->
+  <link href="style.css" rel="stylesheet">
+
+  <!-- Chart.js & PapaParse -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+</head>
+<body>
+  <div class="container">
+    <header class="header mb-3">
+      <div class="logo">LP</div>
+      <div>
+        <h1>🎲 Lotto Predictor — פרימיום</h1>
+        <p class="muted">חיזוי הסתברותי מתקדם — כוונון משקלים בזמן אמת</p>
+      </div>
+    </header>
+
+    <!-- NEW: Weight Tuning Card -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5>⚙️ כוונון משקלים</h5>
+          <div class="small-muted">שנה את המשקל של שכיחות וטריות — העדכון מתבצע מיד</div>
+        </div>
+
+        <div class="row align-items-center g-2">
+          <div class="col-md-6">
+            <label class="form-label small-muted">משקל שכיחות: <strong id="freqVal">70%</strong></label>
+            <input id="freqRange" type="range" class="form-range" min="0" max="100" step="1" value="70">
+          </div>
+          <div class="col-md-6">
+            <label class="form-label small-muted">משקל טריות: <strong id="recVal">30%</strong></label>
+            <input id="recRange" type="range" class="form-range" min="0" max="100" step="1" value="30">
+          </div>
+        </div>
+
+        <div class="small-muted mt-2">המשקלים נשמרים אוטומטית במחשב שלך.</div>
+      </div>
+    </div>
+
+    <!-- ADD FORM CARD -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5>הוספת תוצאה חדשה</h5>
+          <div class="small-muted">6 מספרים (1–37) + נוסף (1–7) + תאריך</div>
+        </div>
+
+        <form id="addForm" class="row g-2 align-items-center">
+          <div class="col-auto"><input id="n1" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="1" required></div>
+          <div class="col-auto"><input id="n2" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="2" required></div>
+          <div class="col-auto"><input id="n3" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="3" required></div>
+          <div class="col-auto"><input id="n4" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="4" required></div>
+          <div class="col-auto"><input id="n5" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="5" required></div>
+          <div class="col-auto"><input id="n6" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="6" required></div>
+
+          <div class="col-auto"><input id="extra" class="form-control form-control-sm" type="number" min="1" max="7" placeholder="נוסף" required></div>
+          <div class="col-auto"><input id="date" class="form-control form-control-sm" type="date" required></div>
+          <div class="col-auto"><button id="addBtn" class="btn btn-success btn-sm">➕ הוסף</button></div>
+
+          <div class="col-12 d-flex gap-2 mt-2">
+            <button id="exportCsvBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-download"></i> יצא CSV</button>
+            <button id="exportJsonBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-file-earmark-code"></i> יצא JSON</button>
+            <button id="clearBtn" class="btn btn-danger btn-sm ms-auto"><i class="bi bi-trash"></i> איפוס מאגר</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- IMPORT + PREDICT -->
+    <div class="row g-3 mb-3">
+      <div class="col-md-6">
+        <div class="card p-3 h-100">
+          <h5>ייבוא CSV / JSON</h5>
+          <div class="small-muted mb-2">תמיכה בפורמטים נפוצים. המידע מתווסף למאגר (merge).</div>
+          <div class="d-flex gap-2 align-items-center">
+            <input id="csvFile" type="file" accept=".csv" class="form-control form-control-sm">
+            <button id="importCsvBtn" class="btn btn-primary btn-sm">ייבא CSV</button>
+            <input id="jsonFile" type="file" accept=".json" style="display:none">
+            <button id="importJsonBtn" class="btn btn-outline-light btn-sm">ייבא JSON</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-6">
+        <div class="card p-3 h-100">
+          <h5>הגדרות חיזוי</h5>
+          <div class="small-muted mb-2">בחר כמות ניחושים וגודל כל ניחוש</div>
+
+          <div class="d-flex gap-2 align-items-center mb-2">
+            <label class="me-2 muted">כמות ניחושים</label>
+            <select id="numGuesses" class="form-select form-select-sm w-auto">
+              <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option>
+            </select>
+
+            <label class="ms-3 me-2 muted">גודל ניחוש</label>
+            <select id="guessSize" class="form-select form-select-sm w-auto">
+              <option value="6">6</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
+            </select>
+
+            <button id="forecastBtn" class="btn btn-warning btn-sm ms-3"><i class="bi bi-brightness-high"></i> חיזוי מומלץ</button>
+          </div>
+
+          <div id="forecastArea" class="mt-3 predictionBox"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DATA TABLE -->
+    <div class="card mb-3">
+      <div class="card-body">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h5 class="mb-0">מאגר נתונים</h5>
+          <div class="muted small">סה"כ שורות: <span id="countSpan">0</span></div>
+        </div>
+        <div style="max-height:340px; overflow:auto;">
+          <table class="table table-hover table-sm text-white mb-0" id="dataTbl">
+            <thead>
+              <tr><th>#</th><th>תאריך</th><th>מספרים</th><th>נוסף</th><th>פעולות</th></tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- CHARTS -->
+    <div class="card mb-3 p-3">
+      <h5 class="mb-2">גרף שכיחויות</h5>
+      <canvas id="mainChart" height="90"></canvas>
+      <canvas id="extraChart" height="60" class="mt-3"></canvas>
+    </div>
+
+    <!-- PROB GRID -->
+    <div class="card mb-4 p-3">
+      <h5 class="mb-2">אחוזי הסתברות למספרים (מודל)</h5>
+      <div id="probsGrid"></div>
+      <div class="note mt-2">ההערכות מבוססות על המשקלים שבחרת; אינן הבטחה לזכייה — אלא אינדיקציה.</div>
+    </div>
+
+  </div>
+
+<script>
+/* lotto premium with dynamic weight sliders
+   - saves weights to localStorage
+   - updates forecasts live when weights change
+*/
+
+const STORAGE_KEY = 'lotto_premium_v1';
+const WEIGHT_KEY = 'lotto_weights_v1';
+let dataset = [];
+
+/* DOM refs */
+const dataTbody = document.querySelector('#dataTbl tbody');
+const countSpan = document.getElementById('countSpan');
+const forecastArea = document.getElementById('forecastArea');
+const probsGrid = document.getElementById('probsGrid');
+
+const freqRange = document.getElementById('freqRange');
+const recRange = document.getElementById('recRange');
+const freqVal = document.getElementById('freqVal');
+const recVal = document.getElementById('recVal');
+
+const csvFile = document.getElementById('csvFile');
+const importCsvBtn = document.getElementById('importCsvBtn');
+const importJsonBtn = document.getElementById('importJsonBtn');
+const jsonFile = document.getElementById('jsonFile');
+
+const exportCsvBtn = document.getElementById('exportCsvBtn');
+const exportJsonBtn = document.getElementById('exportJsonBtn');
+const clearBtn = document.getElementById('clearBtn');
+
+const forecastBtn = document.getElementById('forecastBtn');
+const numGuessesSel = document.getElementById('numGuesses');
+const guessSizeSel = document.getElementById('guessSize');
+
+let mainChart=null, extraChart=null;
+
+/* load/save dataset */
+function loadData(){ const raw = localStorage.getItem(STORAGE_KEY); dataset = raw ? JSON.parse(raw) : []; }
+function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(dataset)); renderAll(); }
+
+/* load/save weights */
+function loadWeights(){
+  const raw = localStorage.getItem(WEIGHT_KEY);
+  if(raw){
+    try{
+      const w = JSON.parse(raw);
+      const f = Number(w.freq)||70;
+      const r = Number(w.rec)||30;
+      setWeights(f,r,false);
+      return;
+    }catch(e){}
+  }
+  setWeights(70,30,false);
+}
+function saveWeights(freq,rec){
+  localStorage.setItem(WEIGHT_KEY, JSON.stringify({freq,rec}));
+}
+
+/* set weights (and update UI text) */
+function setWeights(freq, rec, triggerUpdate=true){
+  // ensure sum >0 — but user can pick any; we'll normalize in scoring
+  freqRange.value = freq;
+  recRange.value = rec;
+  freqVal.textContent = freq + '%';
+  recVal.textContent = rec + '%';
+  if(triggerUpdate){
+    saveWeights(freq, rec);
+    // update per-number grid & forecast area if visible
+    renderAll();
+    // if forecast area currently has content, re-run forecast with existing options:
+  }
+}
+
+/* init weights from storage */
+loadWeights();
+
+/* add form */
+document.getElementById('addForm').addEventListener('submit', (e)=>{
+  e.preventDefault();
+  const n1 = Number(document.getElementById('n1').value);
+  const n2 = Number(document.getElementById('n2').value);
+  const n3 = Number(document.getElementById('n3').value);
+  const n4 = Number(document.getElementById('n4').value);
+  const n5 = Number(document.getElementById('n5').value);
+  const n6 = Number(document.getElementById('n6').value);
+  const extra = Number(document.getElementById('extra').value);
+  const date = document.getElementById('date').value;
+  const nums = [n1,n2,n3,n4,n5,n6];
+  if(nums.some(n => !Number.isInteger(n) || n < 1 || n > 37)){ alert('אנא הכנס 6 מספרים תקינים 1–37'); return; }
+  if(new Set(nums).size !== 6){ alert('אין כפילויות בשורה'); return; }
+  if(!Number.isInteger(extra) || extra < 1 || extra > 7){ alert('המספר הנוסף חייב להיות 1–7'); return; }
+  if(!date){ alert('אנא בחר תאריך'); return; }
+  dataset.push({ date, nums, extra });
+  ['n1','n2','n3','n4','n5','n6','extra','date'].forEach(id => document.getElementById(id).value = '');
+  saveData();
+});
+
+/* render table */
+function renderTable(){
+  dataTbody.innerHTML='';
+  dataset.forEach((r, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${idx+1}</td><td>${r.date}</td><td>${r.nums.map(n=>`<span class="chip">${n}</span>`).join('')}</td><td>${r.extra}</td>
+      <td><button class="btn btn-sm btn-outline-danger" onclick="deleteRow(${idx})"><i class="bi bi-trash"></i> מחק</button></td>`;
+    dataTbody.appendChild(tr);
+  });
+  countSpan.textContent = dataset.length;
+}
+window.deleteRow = function(i){ if(!confirm('להסיר שורה זו?')) return; dataset.splice(i,1); saveData(); }
+
+/* export/import/clear */
+exportCsvBtn.addEventListener('click', ()=>{
+  if(dataset.length===0){ alert('אין נתונים'); return; }
+  let csv='numbers,extra,date\n';
+  dataset.forEach(r=> csv += `"${r.nums.join(',')}",${r.extra},${r.date}\n`);
+  download(csv,'text/csv','lotto_export.csv');
+});
+exportJsonBtn.addEventListener('click', ()=>{
+  if(dataset.length===0){ alert('אין נתונים'); return; }
+  download(JSON.stringify(dataset,null,2),'application/json','lotto_export.json');
+});
+function download(content,type,filename){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+
+clearBtn.addEventListener('click', ()=>{ if(!confirm('למחוק את כל המאגר?')) return; dataset=[]; saveData(); });
+
+/* import JSON */
+importJsonBtn.addEventListener('click', ()=> jsonFile.click());
+jsonFile.addEventListener('change', (ev)=>{
+  const f=ev.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload = e=>{
+    try{
+      const arr = JSON.parse(e.target.result);
+      if(!Array.isArray(arr)){ alert('JSON לא תקין'); return; }
+      let added=0;
+      arr.forEach(it=>{ if(it && Array.isArray(it.nums) && it.nums.length===6 && it.extra && it.date){ dataset.push({ date: it.date, nums: it.nums.map(Number), extra: Number(it.extra) }); added++; }});
+      saveData(); alert(`יובאו ${added} שורות מ-JSON`);
+    }catch(err){ alert('שגיאה בקריאת JSON'); }
+  };
+  r.readAsText(f,'UTF-8');
+});
+
+/* import CSV flexible via PapaParse */
+importCsvBtn.addEventListener('click', ()=> csvFile.click());
+csvFile.addEventListener('change', (ev)=>{
+  const f = ev.target.files[0]; if(!f) return;
+  Papa.parse(f, { skipEmptyLines:true, complete: (res)=>{
+    if(!res.data) { alert('קובץ ריק'); return; }
+    let added=0;
+    res.data.forEach(row=>{
+      const arr = Array.isArray(row) ? row.map(c=>String(c).trim()) : Object.values(row).map(c=>String(c).trim());
+      if(arr.length>=8){
+        const maybeDate = arr[0];
+        const maybeNums = arr.slice(1,7).map(Number);
+        const maybeExtra = Number(arr[7]);
+        if(maybeNums.every(n=>Number.isInteger(n) && n>=1 && n<=37) && Number.isInteger(maybeExtra) && maybeExtra>=1 && maybeExtra<=7){
+          dataset.push({ date: formatDate(maybeDate), nums: maybeNums, extra: maybeExtra }); added++; return;
+        }
+      }
+      if(arr.length>=3){
+        const numsStr = arr[0].replace(/"/g,'');
+        const parts = numsStr.split(/[\s,]+/).map(Number).filter(n=>Number.isInteger(n));
+        const maybeExtra = Number(arr[1]); const maybeDate = arr[2];
+        if(parts.length===6 && Number.isInteger(maybeExtra) && maybeExtra>=1 && maybeExtra<=7){
+          dataset.push({ date: formatDate(maybeDate), nums: parts, extra: maybeExtra }); added++; return;
+        }
+      }
+    });
+    saveData(); alert(`יובאו ${added} שורות מ-CSV`);
+  }, error: ()=> alert('שגיאה בקריאת CSV')});
+});
+
+/* helper date normalization */
+function formatDate(s){
+  s = String(s).trim();
+  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
+  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+  if(m){ let d=m[1].padStart(2,'0'), mo=m[2].padStart(2,'0'), y=m[3]; if(y.length===2) y='20'+y; return `${y}-${mo}-${d}`; }
+  const dt=new Date(s); if(!isNaN(dt)) return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+  return s;
+}
+
+/* scoring & forecasting using dynamic weights */
+function comb(n,k){
+  if(k<0||k>n) return 0;
+  let res=1; for(let i=1;i<=k;i++) res = res * (n - (k - i)) / i;
+  return res;
+}
+
+function computeFreqRecency(){
+  const freq = Array(38).fill(0), lastPos = Array(38).fill(-1);
+  dataset.forEach((row, idx)=>{ row.nums.forEach(n=>{ if(n>=1 && n<=37){ freq[n]++; lastPos[n]=idx; } }); });
+  const N = dataset.length;
+  const recRaw = Array(38).fill(0);
+  for(let i=1;i<=37;i++){ recRaw[i] = lastPos[i] === -1 ? 0 : 1/((N-1) - lastPos[i] + 1); }
+  const maxF = Math.max(...freq);
+  const freqNorm = Array(38).fill(0);
+  for(let i=1;i<=37;i++) freqNorm[i] = maxF>0 ? freq[i]/maxF : 0;
+  const maxR = Math.max(...recRaw);
+  const recNorm = Array(38).fill(0);
+  for(let i=1;i<=37;i++) recNorm[i] = maxR>0 ? recRaw[i]/maxR : 0;
+  return { freq, freqNorm, recNorm, lastPos };
+}
+function computeExtraFreqRecency(){
+  const freq = Array(8).fill(0), lastPos = Array(8).fill(-1);
+  dataset.forEach((row, idx)=>{ if(row.extra>=1 && row.extra<=7){ freq[row.extra]++; lastPos[row.extra]=idx; }});
+  const N = dataset.length;
+  const recRaw = Array(8).fill(0);
+  for(let i=1;i<=7;i++) recRaw[i] = lastPos[i] === -1 ? 0 : 1/((N-1) - lastPos[i] + 1);
+  const maxF = Math.max(...freq);
+  const freqN = Array(8).fill(0); for(let i=1;i<=7;i++) freqN[i] = maxF>0? freq[i]/maxF : 0;
+  const maxR = Math.max(...recRaw); const recN = Array(8).fill(0); for(let i=1;i<=7;i++) recN[i] = maxR>0? recRaw[i]/maxR : 0;
+  return { freq, freqN, recN };
+}
+
+/* compute scores using dynamic weights from sliders (normalized) */
+function computeScoresFromUI(){
+  const fW = Number(freqRange.value);
+  const rW = Number(recRange.value);
+  // If both zero, fallback to equal weights
+  const sum = (fW + rW) || 1;
+  const wf = fW / sum;
+  const wr = rW / sum;
+  const { freqNorm, recNorm } = computeFreqRecency();
+  const scores = Array(38).fill(0);
+  for(let i=1;i<=37;i++) scores[i] = wf * freqNorm[i] + wr * recNorm[i];
+  return { scores, wf, wr };
+}
+function computeExtraScoresFromUI(){
+  const fW = Number(freqRange.value);
+  const rW = Number(recRange.value);
+  const sum = (fW + rW) || 1;
+  const wf = fW / sum;
+  const wr = rW / sum;
+  const { freqN, recN } = computeExtraFreqRecency();
+  const scores = Array(8).fill(0);
+  for(let i=1;i<=7;i++) scores[i] = wf * freqN[i] + wr * recN[i];
+  return scores;
+}
+
+/* forecast using UI weights */
+function forecastUI(guessSize=6, guessCount=3){
+  if(dataset.length===0) { alert('אין נתונים — הוסף או טען CSV'); return null; }
+  const { scores, wf, wr } = computeScoresFromUI();
+  const extraScores = computeExtraScoresFromUI();
+
+  let total=0; for(let i=1;i<=37;i++) total+=scores[i];
+  const prob = Array(38).fill(0); if(total>0) for(let i=1;i<=37;i++) prob[i]=scores[i]/total; else for(let i=1;i<=37;i++) prob[i]=1/37;
+
+  let totalE=0; for(let i=1;i<=7;i++) totalE+=extraScores[i];
+  const probExtra = Array(8).fill(0); if(totalE>0) for(let i=1;i<=7;i++) probExtra[i]=extraScores[i]/totalE; else for(let i=1;i<=7;i++) probExtra[i]=1/7;
+
+  const order = []; for(let i=1;i<=37;i++) order.push({num:i,score:scores[i],prob:prob[i]});
+  order.sort((a,b)=>b.score - a.score);
+
+  const guesses = [];
+  for(let g=0; g<guessCount; g++){
+    let start = g;
+    const selected = [];
+    let idx = start;
+    while(selected.length < guessSize){
+      if(idx >= order.length) idx = 0;
+      const c = order[idx].num; if(!selected.includes(c)) selected.push(c);
+      idx++;
+    }
+    selected.sort((a,b)=>a-b);
+    const extrasOrder = []; for(let i=1;i<=7;i++) extrasOrder.push({num:i,score:extraScores[i],prob:probExtra[i]});
+    extrasOrder.sort((a,b)=>b.score - a.score);
+    const extraPick = extrasOrder[g % extrasOrder.length].num;
+    guesses.push({ nums:selected, extra:extraPick });
+  }
+
+  const recommended = order.slice(0,guessSize).map(x=>x.num).sort((a,b)=>a-b);
+  const recommendedExtra = computeExtraScoresFromUI().map((v,i)=>({num:i,score:v})).slice(1).sort((a,b)=>b.score-a.score)[0].num;
+
+  const P_subset = guessSize >=6 ? comb(guessSize,6) / comb(37,6) : 0;
+  let pS=0; recommended.forEach(n=> pS+=prob[n]);
+  const modelApprox = Math.pow(pS, 6);
+  let jointProd=1; recommended.forEach(n=> jointProd *= prob[n] || (1/37));
+  const P_extra = probExtra[recommendedExtra] || (1/7);
+  const P_combined_model = modelApprox * P_extra;
+  const P_combined_combin = P_subset * P_extra;
+
+  return {
+    guesses, recommended: { nums: recommended, extra: recommendedExtra },
+    perNumberProb: prob, perExtraProb: probExtra,
+    P_subset, modelApprox, jointProd, P_extra, P_combined_model, P_combined_combin, pS,
+    weights: { wf, wr }
+  };
+}
+
+/* render forecast UI */
+function renderForecastUI(res, guessSize){
+  if(!res) return;
+  forecastArea.innerHTML = '';
+  const header = document.createElement('div'); header.innerHTML = `<strong>תחזית מומלצת — ${guessSize} מספרים</strong>`;
+  const recRow = document.createElement('div'); recRow.className='mt-2';
+  res.recommended.nums.forEach(n=>{
+    const b = document.createElement('span'); b.className='ball'; b.textContent = n;
+    const pct = document.createElement('span'); pct.className='percent'; pct.textContent = (res.perNumberProb[n]*100).toFixed(2) + '%';
+    recRow.appendChild(b); recRow.appendChild(pct);
+  });
+  const be = document.createElement('span'); be.className='ball extra'; be.textContent = res.recommended.extra;
+  const extraPct = document.createElement('span'); extraPct.className='percent'; extraPct.textContent = (res.perExtraProb[res.recommended.extra]*100).toFixed(2) + '%';
+  recRow.appendChild(be); recRow.appendChild(extraPct);
+
+  const weightsInfo = document.createElement('div'); weightsInfo.className='small-muted mt-2';
+  weightsInfo.innerHTML = `משקלים -- שכיחות: <strong>${(res.weights.wf*100).toFixed(0)}%</strong>, טריות: <strong>${(res.weights.wr*100).toFixed(0)}%</strong>`;
+
+  const stats = document.createElement('div'); stats.className='mt-3 small-muted';
+  stats.innerHTML = `
+    הסתברות קומבינטורית (6 בתוך קבוצה בגודל ${guessSize}): <strong>${(res.P_subset*100).toFixed(6)}%</strong><br>
+    סכום הסתברויות מודליות עבור הקבוצה (pS): <strong>${(res.pS*100).toFixed(4)}%</strong><br>
+    הערכה מודלית (pS^6): <strong>${(res.modelApprox*100).toFixed(6)}%</strong><br>
+    הסתברות משולבת משוערת (מודלית) כולל נוסף: <strong>${(res.P_combined_model*100).toFixed(8)}%</strong>
+  `;
+
+  const guessesDiv = document.createElement('div'); guessesDiv.className='mt-3';
+  guessesDiv.innerHTML = `<strong>ניחושים שנוצרו:</strong>`;
+  res.guesses.forEach((g,idx)=>{
+    const gdiv = document.createElement('div'); gdiv.className='mt-2';
+    gdiv.innerHTML = `<em>ניחוש ${idx+1}:</em> ${g.nums.map(x=>`<span class="chip">${x}</span>`).join('')} <span class="chip" style="background:${'#7dd3fc'};color:#000;margin-left:8px">${g.extra}</span>`;
+    guessesDiv.appendChild(gdiv);
+  });
+
+  forecastArea.appendChild(header);
+  forecastArea.appendChild(weightsInfo);
+  forecastArea.appendChild(recRow);
+  forecastArea.appendChild(stats);
+  forecastArea.appendChild(guessesDiv);
+}
+
+/* per-number grid */
+function renderPerNumberGrid(prob){
+  probsGrid.innerHTML='';
+  for(let i=1;i<=37;i++){
+    const el=document.createElement('div'); el.className='probCard';
+    el.innerHTML = `<div style="display:flex;justify-content:center"><div class="ball" style="width:36px;height:36px;font-size:13px">${i}</div></div>
+                    <div class="small-muted" style="margin-top:6px">${(prob[i]*100).toFixed(3)}%</div>`;
+    probsGrid.appendChild(el);
+  }
+}
+
+/* charts */
+function renderCharts(){
+  const freq = Array(37).fill(0);
+  const extraFreq = Array(7).fill(0);
+  dataset.forEach(r=>{ r.nums.forEach(n=> freq[n-1]++); if(r.extra>=1 && r.extra<=7) extraFreq[r.extra-1]++; });
+
+  const ctx = document.getElementById('mainChart').getContext('2d');
+  if(mainChart) mainChart.destroy();
+  mainChart = new Chart(ctx, { type:'bar', data:{ labels:Array.from({length:37},(_,i)=>i+1), datasets:[{ data:freq, backgroundColor:'rgba(125,211,252,0.95)' }] }, options:{plugins:{legend:{display:false}}}});
+
+  const ctx2 = document.getElementById('extraChart').getContext('2d');
+  if(extraChart) extraChart.destroy();
+  extraChart = new Chart(ctx2, { type:'bar', data:{ labels:Array.from({length:7},(_,i)=>i+1), datasets:[{ data:extraFreq, backgroundColor:'rgba(99,102,241,0.95)' }] }, options:{plugins:{legend:{display:false}}}});
+}
+
+/* render all */
+function renderAll(){
+  renderTable();
+  renderCharts();
+  // update per-number grid according to current weights
+  const { scores } = computeScoresFromUI();
+  let sum=0; for(let i=1;i<=37;i++) sum+=scores[i];
+  const prob = Array(38).fill(0);
+  if(sum>0) for(let i=1;i<=37;i++) prob[i]=scores[i]/sum; else for(let i=1;i<=37;i++) prob[i]=1/37;
+  renderPerNumberGrid(prob);
+}
+
+/* event: sliders change */
+freqRange.addEventListener('input', ()=> {
+  const f = Number(freqRange.value);
+  const r = Number(recRange.value);
+  freqVal.textContent = f + '%';
+  saveWeights(f, r);
+  renderAll();
+});
+recRange.addEventListener('input', ()=> {
+  const f = Number(freqRange.value);
+  const r = Number(recRange.value);
+  recVal.textContent = r + '%';
+  saveWeights(f, r);
+  renderAll();
+});
+
+/* forecast button */
+forecastBtn.addEventListener('click', ()=>{
+  const k = Number(numGuessesSel.value);
+  const size = Number(guessSizeSel.value);
+  const res = forecastUI(size, k); // note signature: forecastUI(guessSize, guessCount) but purposely passing reversed? fix - use forecastUI(size, k)
+  // above line had reversed args; correct call:
+  const resCorrect = forecastUI(size, k);
+  if(resCorrect) renderForecastUI(resCorrect, size);
+});
+
+/* init weights from storage and bind initial UI values */
+(function init(){
+  loadData();
+  // load weights and set UI values
+  const wraw = localStorage.getItem(WEIGHT_KEY);
+  if(wraw){
+    try{ const w=JSON.parse(wraw); setWeights(Number(w.freq)||70, Number(w.rec)||30, false); }
+    catch(e){ setWeights(70,30,false); }
+  } else { setWeights(70,30,false); }
+  // display initial numbers
+  renderAll();
+})();
+
+/* small correction: earlier forecastUI called with reversed args; we expose correct function too */
+function forecastUI(guessSize, guessCount){
+  // wrapper to original forecastUI implementation above (already defined earlier)
+  return (function inner(size, count){ return (function(){ 
+    // reuse compute based on UI weights
+    if(dataset.length===0) { alert('אין נתונים — הוסף או טען CSV'); return null; }
+    const { scores, wf, wr } = computeScoresFromUI();
+    const extraScores = computeExtraScoresFromUI();
+    let total=0; for(let i=1;i<=37;i++) total+=scores[i];
+    const prob = Array(38).fill(0); if(total>0) for(let i=1;i<=37;i++) prob[i]=scores[i]/total; else for(let i=1;i<=37;i++) prob[i]=1/37;
+    let totalE=0; for(let i=1;i<=7;i++) totalE+=extraScores[i];
+    const probExtra = Array(8).fill(0); if(totalE>0) for(let i=1;i<=7;i++) probExtra[i]=extraScores[i]/totalE; else for(let i=1;i<=7;i++) probExtra[i]=1/7;
+    const order=[]; for(let i=1;i<=37;i++) order.push({num:i,score:scores[i],prob:prob[i]}); order.sort((a,b)=>b.score-a.score);
+    const guesses=[]; for(let g=0; g<count; g++){
+      let start=g; const selected=[]; let idx=start;
+      while(selected.length < size){ if(idx>=order.length) idx=0; const c=order[idx].num; if(!selected.includes(c)) selected.push(c); idx++; }
+      selected.sort((a,b)=>a-b);
+      const extrasOrder=[]; for(let i=1;i<=7;i++) extrasOrder.push({num:i,score:extraScores[i],prob:probExtra[i]}); extrasOrder.sort((a,b)=>b.score-a.score);
+      const extraPick = extrasOrder[g % extrasOrder.length].num;
+      guesses.push({ nums:selected, extra:extraPick });
+    }
+    const recommended = order.slice(0,size).map(x=>x.num).sort((a,b)=>a-b);
+    const recommendedExtra = computeExtraScoresFromUI().map((v,i)=>({num:i,score:v})).slice(1).sort((a,b)=>b.score-a.score)[0].num;
+    const P_subset = size>=6 ? comb(size,6) / comb(37,6) : 0;
+    let pS=0; recommended.forEach(n=> pS+=prob[n]);
+    const modelApprox = Math.pow(pS, 6);
+    let jointProd=1; recommended.forEach(n=> jointProd *= prob[n] || (1/37));
+    const P_extra = probExtra[recommendedExtra] || (1/7);
+    const P_combined_model = modelApprox * P_extra;
+    const P_combined_combin = P_subset * P_extra;
+    return { guesses, recommended:{nums:recommended, extra:recommendedExtra}, perNumberProb:prob, perExtraProb:probExtra, P_subset, modelApprox, jointProd, P_extra, P_combined_model, P_combined_combin, pS, weights:{wf,wr} };
+  })(); })(guessSize, guessCount);
+}
+
+/* convenience download function */
+function download(content,type,filename){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+
+</script>
+
+<!-- Bootstrap JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
