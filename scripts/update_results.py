@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Append new Israeli Lotto draws to lotto.csv.
 
-Primary source: paisresults.co.il (paginated archive). Every draw is cross-checked
+Primary source: paisresults.co.il (its home page lists the latest 25 draws). Every draw is cross-checked
 against lottoplus.co.il where both list it; any disagreement aborts without writing.
 lotto.csv keeps the Pais export layout and Windows-1255 encoding.
 """
@@ -10,7 +10,7 @@ from pathlib import Path
 
 CSV = Path(__file__).resolve().parent.parent / "lotto.csv"
 UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
-PRIMARY = "https://www.paisresults.co.il/index.php?p={page}"
+PRIMARY = "https://www.paisresults.co.il/"   # lists the latest 25 draws
 CHECK = "https://lottoplus.co.il/lotto-result/"
 
 
@@ -77,17 +77,12 @@ def main():
     known_max = max(i for i in ids if i < 6000)
     print(f"lotto.csv: {len(lines) - 1} rows, latest draw {known_max}")
 
-    found = {}
-    for page in range(1, 60):
-        p = fetch(PRIMARY.format(page=page))
-        if not p:
-            break
-        got = parse_primary(p)
-        if not got:
-            break
-        found.update(got)
-        if min(got) <= known_max + 1:
-            break
+    p = fetch(PRIMARY)
+    found = parse_primary(p) if p else {}
+    if not found:
+        print("Could not read any draw from the primary source. Page starts with:", file=sys.stderr)
+        print(text_of(p or "")[:600], file=sys.stderr)
+        return 1
     new = {k: v for k, v in found.items() if k > known_max}
     if not new:
         print("No new draws.")
@@ -100,7 +95,7 @@ def main():
     expected = set(range(known_max + 1, max(new) + 1))
     missing = sorted(expected - set(new))
     if missing:
-        print(f"Source is missing draws {missing}; aborting so the file stays contiguous.", file=sys.stderr)
+        print(f"Source does not list draws {missing} (more than 25 draws behind?); add them by hand and rerun.", file=sys.stderr)
         return 1
 
     chk_page = fetch(CHECK)
