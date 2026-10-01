@@ -1,604 +1,1102 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
 <head>
-  <meta charset="utf-8">
-  <title>Lotto — פרימיום חיזוי (כוונון משקלים)</title>
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-
-  <!-- Bootstrap 5 -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
-
-  <!-- custom style (external) -->
-  <link href="style.css" rel="stylesheet">
-
-  <!-- Chart.js & PapaParse -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-</head>
-<body>
-  <div class="container">
-    <header class="header mb-3">
-      <div class="logo">LP</div>
-      <div>
-        <h1>🎲 Lotto Predictor — פרימיום</h1>
-        <p class="muted">חיזוי הסתברותי מתקדם — כוונון משקלים בזמן אמת</p>
-      </div>
-    </header>
-
-    <!-- NEW: Weight Tuning Card -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5>⚙️ כוונון משקלים</h5>
-          <div class="small-muted">שנה את המשקל של שכיחות וטריות — העדכון מתבצע מיד</div>
-        </div>
-
-        <div class="row align-items-center g-2">
-          <div class="col-md-6">
-            <label class="form-label small-muted">משקל שכיחות: <strong id="freqVal">70%</strong></label>
-            <input id="freqRange" type="range" class="form-range" min="0" max="100" step="1" value="70">
-          </div>
-          <div class="col-md-6">
-            <label class="form-label small-muted">משקל טריות: <strong id="recVal">30%</strong></label>
-            <input id="recRange" type="range" class="form-range" min="0" max="100" step="1" value="30">
-          </div>
-        </div>
-
-        <div class="small-muted mt-2">המשקלים נשמרים אוטומטית במחשב שלך.</div>
-      </div>
-    </div>
-
-    <!-- ADD FORM CARD -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5>הוספת תוצאה חדשה</h5>
-          <div class="small-muted">6 מספרים (1–37) + נוסף (1–7) + תאריך</div>
-        </div>
-
-        <form id="addForm" class="row g-2 align-items-center">
-          <div class="col-auto"><input id="n1" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="1" required></div>
-          <div class="col-auto"><input id="n2" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="2" required></div>
-          <div class="col-auto"><input id="n3" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="3" required></div>
-          <div class="col-auto"><input id="n4" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="4" required></div>
-          <div class="col-auto"><input id="n5" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="5" required></div>
-          <div class="col-auto"><input id="n6" class="form-control form-control-sm" type="number" min="1" max="37" placeholder="6" required></div>
-
-          <div class="col-auto"><input id="extra" class="form-control form-control-sm" type="number" min="1" max="7" placeholder="נוסף" required></div>
-          <div class="col-auto"><input id="date" class="form-control form-control-sm" type="date" required></div>
-          <div class="col-auto"><button id="addBtn" class="btn btn-success btn-sm">➕ הוסף</button></div>
-
-          <div class="col-12 d-flex gap-2 mt-2">
-            <button id="exportCsvBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-download"></i> יצא CSV</button>
-            <button id="exportJsonBtn" class="btn btn-outline-light btn-sm"><i class="bi bi-file-earmark-code"></i> יצא JSON</button>
-            <button id="clearBtn" class="btn btn-danger btn-sm ms-auto"><i class="bi bi-trash"></i> איפוס מאגר</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- IMPORT + PREDICT -->
-    <div class="row g-3 mb-3">
-      <div class="col-md-6">
-        <div class="card p-3 h-100">
-          <h5>ייבוא CSV / JSON</h5>
-          <div class="small-muted mb-2">תמיכה בפורמטים נפוצים. המידע מתווסף למאגר (merge).</div>
-          <div class="d-flex gap-2 align-items-center">
-            <input id="csvFile" type="file" accept=".csv" class="form-control form-control-sm">
-            <button id="importCsvBtn" class="btn btn-primary btn-sm">ייבא CSV</button>
-            <input id="jsonFile" type="file" accept=".json" style="display:none">
-            <button id="importJsonBtn" class="btn btn-outline-light btn-sm">ייבא JSON</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="col-md-6">
-        <div class="card p-3 h-100">
-          <h5>הגדרות חיזוי</h5>
-          <div class="small-muted mb-2">בחר כמות ניחושים וגודל כל ניחוש</div>
-
-          <div class="d-flex gap-2 align-items-center mb-2">
-            <label class="me-2 muted">כמות ניחושים</label>
-            <select id="numGuesses" class="form-select form-select-sm w-auto">
-              <option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option>
-            </select>
-
-            <label class="ms-3 me-2 muted">גודל ניחוש</label>
-            <select id="guessSize" class="form-select form-select-sm w-auto">
-              <option value="6">6</option><option value="8">8</option><option value="9">9</option><option value="10">10</option>
-            </select>
-
-            <button id="forecastBtn" class="btn btn-warning btn-sm ms-3"><i class="bi bi-brightness-high"></i> חיזוי מומלץ</button>
-          </div>
-
-          <div id="forecastArea" class="mt-3 predictionBox"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- DATA TABLE -->
-    <div class="card mb-3">
-      <div class="card-body">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h5 class="mb-0">מאגר נתונים</h5>
-          <div class="muted small">סה"כ שורות: <span id="countSpan">0</span></div>
-        </div>
-        <div style="max-height:340px; overflow:auto;">
-          <table class="table table-hover table-sm text-white mb-0" id="dataTbl">
-            <thead>
-              <tr><th>#</th><th>תאריך</th><th>מספרים</th><th>נוסף</th><th>פעולות</th></tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- CHARTS -->
-    <div class="card mb-3 p-3">
-      <h5 class="mb-2">גרף שכיחויות</h5>
-      <canvas id="mainChart" height="90"></canvas>
-      <canvas id="extraChart" height="60" class="mt-3"></canvas>
-    </div>
-
-    <!-- PROB GRID -->
-    <div class="card mb-4 p-3">
-      <h5 class="mb-2">אחוזי הסתברות למספרים (מודל)</h5>
-      <div id="probsGrid"></div>
-      <div class="note mt-2">ההערכות מבוססות על המשקלים שבחרת; אינן הבטחה לזכייה — אלא אינדיקציה.</div>
-    </div>
-
-  </div>
-
-<script>
-/* lotto premium with dynamic weight sliders
-   - saves weights to localStorage
-   - updates forecasts live when weights change
-*/
-
-const STORAGE_KEY = 'lotto_premium_v1';
-const WEIGHT_KEY = 'lotto_weights_v1';
-let dataset = [];
-
-/* DOM refs */
-const dataTbody = document.querySelector('#dataTbl tbody');
-const countSpan = document.getElementById('countSpan');
-const forecastArea = document.getElementById('forecastArea');
-const probsGrid = document.getElementById('probsGrid');
-
-const freqRange = document.getElementById('freqRange');
-const recRange = document.getElementById('recRange');
-const freqVal = document.getElementById('freqVal');
-const recVal = document.getElementById('recVal');
-
-const csvFile = document.getElementById('csvFile');
-const importCsvBtn = document.getElementById('importCsvBtn');
-const importJsonBtn = document.getElementById('importJsonBtn');
-const jsonFile = document.getElementById('jsonFile');
-
-const exportCsvBtn = document.getElementById('exportCsvBtn');
-const exportJsonBtn = document.getElementById('exportJsonBtn');
-const clearBtn = document.getElementById('clearBtn');
-
-const forecastBtn = document.getElementById('forecastBtn');
-const numGuessesSel = document.getElementById('numGuesses');
-const guessSizeSel = document.getElementById('guessSize');
-
-let mainChart=null, extraChart=null;
-
-/* load/save dataset */
-function loadData(){ const raw = localStorage.getItem(STORAGE_KEY); dataset = raw ? JSON.parse(raw) : []; }
-function saveData(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(dataset)); renderAll(); }
-
-/* load/save weights */
-function loadWeights(){
-  const raw = localStorage.getItem(WEIGHT_KEY);
-  if(raw){
-    try{
-      const w = JSON.parse(raw);
-      const f = Number(w.freq)||70;
-      const r = Number(w.rec)||30;
-      setWeights(f,r,false);
-      return;
-    }catch(e){}
-  }
-  setWeights(70,30,false);
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>לוטו — מרכז ניתוח</title>
+<meta name="description" content="ניתוח סטטיסטי מלא של תוצאות הלוטו בישראל: שכיחויות, פערים, זוגות, התפלגויות, בדיקה לאחור ומחולל טפסים.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f1ea; --surface:#fffdf8; --surface-2:#f0ebe0; --line:#e2dccd;
+  --ink:#1b1a17; --muted:#6c675c; --accent:#b8401f; --accent-ink:#fff;
+  --gold:#c9962b; --good:#2f7d4f; --bad:#b33a2b; --cool:#2d6a9f;
+  --ball:#fffaf0; --ball-ink:#1b1a17; --strong:#c0392b;
+  --shadow:0 1px 2px rgba(40,30,10,.06),0 6px 24px rgba(40,30,10,.06);
+  --r:16px;
 }
-function saveWeights(freq,rec){
-  localStorage.setItem(WEIGHT_KEY, JSON.stringify({freq,rec}));
-}
-
-/* set weights (and update UI text) */
-function setWeights(freq, rec, triggerUpdate=true){
-  // ensure sum >0 — but user can pick any; we'll normalize in scoring
-  freqRange.value = freq;
-  recRange.value = rec;
-  freqVal.textContent = freq + '%';
-  recVal.textContent = rec + '%';
-  if(triggerUpdate){
-    saveWeights(freq, rec);
-    // update per-number grid & forecast area if visible
-    renderAll();
-    // if forecast area currently has content, re-run forecast with existing options:
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#121210; --surface:#1b1b18; --surface-2:#24231f; --line:#33312b;
+    --ink:#f1ece0; --muted:#a39d8f; --accent:#e2683f; --accent-ink:#1b1a17;
+    --gold:#e0b453; --good:#5fbf86; --bad:#ef7462; --cool:#6aa8de;
+    --ball:#f6efdf; --ball-ink:#1b1a17; --strong:#e0533f;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.25);
   }
 }
-
-/* init weights from storage */
-loadWeights();
-
-/* add form */
-document.getElementById('addForm').addEventListener('submit', (e)=>{
-  e.preventDefault();
-  const n1 = Number(document.getElementById('n1').value);
-  const n2 = Number(document.getElementById('n2').value);
-  const n3 = Number(document.getElementById('n3').value);
-  const n4 = Number(document.getElementById('n4').value);
-  const n5 = Number(document.getElementById('n5').value);
-  const n6 = Number(document.getElementById('n6').value);
-  const extra = Number(document.getElementById('extra').value);
-  const date = document.getElementById('date').value;
-  const nums = [n1,n2,n3,n4,n5,n6];
-  if(nums.some(n => !Number.isInteger(n) || n < 1 || n > 37)){ alert('אנא הכנס 6 מספרים תקינים 1–37'); return; }
-  if(new Set(nums).size !== 6){ alert('אין כפילויות בשורה'); return; }
-  if(!Number.isInteger(extra) || extra < 1 || extra > 7){ alert('המספר הנוסף חייב להיות 1–7'); return; }
-  if(!date){ alert('אנא בחר תאריך'); return; }
-  dataset.push({ date, nums, extra });
-  ['n1','n2','n3','n4','n5','n6','extra','date'].forEach(id => document.getElementById(id).value = '');
-  saveData();
-});
-
-/* render table */
-function renderTable(){
-  dataTbody.innerHTML='';
-  dataset.forEach((r, idx) => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${idx+1}</td><td>${r.date}</td><td>${r.nums.map(n=>`<span class="chip">${n}</span>`).join('')}</td><td>${r.extra}</td>
-      <td><button class="btn btn-sm btn-outline-danger" onclick="deleteRow(${idx})"><i class="bi bi-trash"></i> מחק</button></td>`;
-    dataTbody.appendChild(tr);
-  });
-  countSpan.textContent = dataset.length;
+:root[data-theme="dark"]{
+  --bg:#121210; --surface:#1b1b18; --surface-2:#24231f; --line:#33312b;
+  --ink:#f1ece0; --muted:#a39d8f; --accent:#e2683f; --accent-ink:#1b1a17;
+  --gold:#e0b453; --good:#5fbf86; --bad:#ef7462; --cool:#6aa8de;
+  --ball:#f6efdf; --ball-ink:#1b1a17; --strong:#e0533f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.25);
 }
-window.deleteRow = function(i){ if(!confirm('להסיר שורה זו?')) return; dataset.splice(i,1); saveData(); }
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:Rubik,Heebo,sans-serif;margin:0;line-height:1.2}
+h2{font-size:22px}
+h3{font-size:16px}
+a{color:var(--accent)}
+.muted{color:var(--muted)}
+.small{font-size:13px}
+.num{font-family:Rubik,sans-serif;font-variant-numeric:tabular-nums}
 
-/* export/import/clear */
-exportCsvBtn.addEventListener('click', ()=>{
-  if(dataset.length===0){ alert('אין נתונים'); return; }
-  let csv='numbers,extra,date\n';
-  dataset.forEach(r=> csv += `"${r.nums.join(',')}",${r.extra},${r.date}\n`);
-  download(csv,'text/csv','lotto_export.csv');
-});
-exportJsonBtn.addEventListener('click', ()=>{
-  if(dataset.length===0){ alert('אין נתונים'); return; }
-  download(JSON.stringify(dataset,null,2),'application/json','lotto_export.json');
-});
-function download(content,type,filename){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
+/* header */
+.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
+.top .wrap{display:flex;align-items:center;gap:14px;height:60px}
+.brand{display:flex;align-items:center;gap:10px;font-family:Rubik;font-weight:800;font-size:18px;white-space:nowrap}
+.brand .dot{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 18%,var(--accent) 19%);box-shadow:inset 0 -3px 6px rgba(0,0,0,.2);flex:none}
+@media (max-width:640px){.brand span:last-child{display:none}}
+nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
+nav.tabs::-webkit-scrollbar{display:none}
+nav.tabs button{border:0;background:none;color:var(--muted);font:inherit;font-weight:500;padding:8px 12px;border-radius:10px;cursor:pointer;white-space:nowrap}
+nav.tabs button:hover{color:var(--ink);background:var(--surface-2)}
+nav.tabs button.on{color:var(--ink);background:var(--surface);box-shadow:var(--shadow)}
+.iconbtn{border:1px solid var(--line);background:var(--surface);color:var(--ink);width:36px;height:36px;border-radius:10px;cursor:pointer;display:grid;place-items:center;flex:none;font-size:16px}
 
-clearBtn.addEventListener('click', ()=>{ if(!confirm('למחוק את כל המאגר?')) return; dataset=[]; saveData(); });
+/* hero */
+.hero{padding:28px 0 8px}
+.hero-grid{display:grid;grid-template-columns:1.4fr 1fr;gap:16px}
+@media (max-width:860px){.hero-grid{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:18px;box-shadow:var(--shadow);min-width:0}
+.card h3{margin-bottom:10px}
+.lastdraw .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+.eyebrow{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700}
+.balls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr;justify-content:flex-end}
+.balls.start{justify-content:flex-start}
+.ball{--s:46px;width:var(--s);height:var(--s);border-radius:50%;display:grid;place-items:center;font-family:Rubik;font-weight:700;font-size:calc(var(--s)*.4);color:var(--ball-ink);
+  background:radial-gradient(circle at 34% 28%,#fff 0 12%,var(--ball) 40%,color-mix(in srgb,var(--ball) 70%,#b9ab8c) 100%);
+  box-shadow:inset 0 -3px 6px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.12);border:2px solid var(--ring,transparent);flex:none}
+.lastdraw .ball{--s:52px}
+@media (max-width:480px){.lastdraw .ball{--s:36px}.balls{gap:5px}.ball.sm{--s:30px}.card{padding:14px}.ticket{padding:9px}}
+.ball.sm{--s:34px}
+.ball.xs{--s:26px;border-width:1.5px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.1)}
+.ball.strong{background:radial-gradient(circle at 34% 28%,#ff9d8c 0 12%,var(--strong) 45%,#7d1d12 100%);color:#fff;border-color:transparent}
+.ball.hit{outline:3px solid var(--good);outline-offset:1px}
+.ball.d1{--ring:#d9a441}.ball.d2{--ring:#4c8dc4}.ball.d3{--ring:#4fa36b}.ball.d4{--ring:#a463b8}
+.plus{font-family:Rubik;color:var(--muted);font-weight:700}
+.kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.kpi{background:var(--surface-2);border-radius:12px;padding:12px;min-width:0}
+.kpi b{display:block;font-family:Rubik;font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi span{font-size:12.5px;color:var(--muted)}
+.banner{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px 14px;margin-top:16px;background:color-mix(in srgb,var(--gold) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--gold) 45%,transparent)}
+.banner.ok{background:color-mix(in srgb,var(--good) 12%,var(--surface));border-color:color-mix(in srgb,var(--good) 40%,transparent)}
 
-/* import JSON */
-importJsonBtn.addEventListener('click', ()=> jsonFile.click());
-jsonFile.addEventListener('change', (ev)=>{
-  const f=ev.target.files[0]; if(!f) return;
-  const r=new FileReader(); r.onload = e=>{
-    try{
-      const arr = JSON.parse(e.target.result);
-      if(!Array.isArray(arr)){ alert('JSON לא תקין'); return; }
-      let added=0;
-      arr.forEach(it=>{ if(it && Array.isArray(it.nums) && it.nums.length===6 && it.extra && it.date){ dataset.push({ date: it.date, nums: it.nums.map(Number), extra: Number(it.extra) }); added++; }});
-      saveData(); alert(`יובאו ${added} שורות מ-JSON`);
-    }catch(err){ alert('שגיאה בקריאת JSON'); }
-  };
-  r.readAsText(f,'UTF-8');
-});
+/* sections */
+section.page{display:none;padding:18px 0 40px}
+section.page.on{display:block}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap;margin:10px 0 14px}
+.sec-head p{margin:4px 0 0;color:var(--muted);max-width:720px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+@media (max-width:860px){.grid2,.grid3{grid-template-columns:1fr}}
+.stack>*+*{margin-top:16px}
 
-/* import CSV flexible via PapaParse */
-importCsvBtn.addEventListener('click', ()=> csvFile.click());
-csvFile.addEventListener('change', (ev)=>{
-  const f = ev.target.files[0]; if(!f) return;
-  Papa.parse(f, { skipEmptyLines:true, complete: (res)=>{
-    if(!res.data) { alert('קובץ ריק'); return; }
-    let added=0;
-    res.data.forEach(row=>{
-      const arr = Array.isArray(row) ? row.map(c=>String(c).trim()) : Object.values(row).map(c=>String(c).trim());
-      if(arr.length>=8){
-        const maybeDate = arr[0];
-        const maybeNums = arr.slice(1,7).map(Number);
-        const maybeExtra = Number(arr[7]);
-        if(maybeNums.every(n=>Number.isInteger(n) && n>=1 && n<=37) && Number.isInteger(maybeExtra) && maybeExtra>=1 && maybeExtra<=7){
-          dataset.push({ date: formatDate(maybeDate), nums: maybeNums, extra: maybeExtra }); added++; return;
-        }
-      }
-      if(arr.length>=3){
-        const numsStr = arr[0].replace(/"/g,'');
-        const parts = numsStr.split(/[\s,]+/).map(Number).filter(n=>Number.isInteger(n));
-        const maybeExtra = Number(arr[1]); const maybeDate = arr[2];
-        if(parts.length===6 && Number.isInteger(maybeExtra) && maybeExtra>=1 && maybeExtra<=7){
-          dataset.push({ date: formatDate(maybeDate), nums: parts, extra: maybeExtra }); added++; return;
-        }
-      }
-    });
-    saveData(); alert(`יובאו ${added} שורות מ-CSV`);
-  }, error: ()=> alert('שגיאה בקריאת CSV')});
-});
+/* controls */
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+select,input[type=number],input[type=date],input[type=text]{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:7px 10px;min-width:0}
+.btn{font:inherit;font-weight:700;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 14px;cursor:pointer}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.primary:hover{filter:brightness(1.06)}
+.btn.danger{color:var(--bad)}
+.seg{display:inline-flex;background:var(--surface-2);border-radius:10px;padding:3px;gap:2px;flex-wrap:wrap}
+.seg button{border:0;background:none;font:inherit;font-size:13.5px;color:var(--muted);padding:5px 10px;border-radius:8px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--ink);box-shadow:var(--shadow);font-weight:700}
 
-/* helper date normalization */
-function formatDate(s){
-  s = String(s).trim();
-  if(/^\d{4}-\d{1,2}-\d{1,2}$/.test(s)) return s;
-  const m = s.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if(m){ let d=m[1].padStart(2,'0'), mo=m[2].padStart(2,'0'), y=m[3]; if(y.length===2) y='20'+y; return `${y}-${mo}-${d}`; }
-  const dt=new Date(s); if(!isNaN(dt)) return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
-  return s;
-}
+/* heat grid */
+.heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;direction:ltr}
+.cell{border-radius:12px;padding:8px 4px;text-align:center;border:1px solid var(--line);background:var(--c,var(--surface-2))}
+.cell .n{font-family:Rubik;font-weight:800;font-size:20px}
+.cell .f{font-size:12px}
+.cell .z{font-size:11.5px;font-weight:700;opacity:.8}
+.legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
+.legend i{display:inline-block;width:56px;height:10px;border-radius:5px;background:linear-gradient(90deg,var(--cool),var(--surface-2),var(--accent))}
 
-/* scoring & forecasting using dynamic weights */
-function comb(n,k){
-  if(k<0||k>n) return 0;
-  let res=1; for(let i=1;i<=k;i++) res = res * (n - (k - i)) / i;
-  return res;
-}
-
-function computeFreqRecency(){
-  const freq = Array(38).fill(0), lastPos = Array(38).fill(-1);
-  dataset.forEach((row, idx)=>{ row.nums.forEach(n=>{ if(n>=1 && n<=37){ freq[n]++; lastPos[n]=idx; } }); });
-  const N = dataset.length;
-  const recRaw = Array(38).fill(0);
-  for(let i=1;i<=37;i++){ recRaw[i] = lastPos[i] === -1 ? 0 : 1/((N-1) - lastPos[i] + 1); }
-  const maxF = Math.max(...freq);
-  const freqNorm = Array(38).fill(0);
-  for(let i=1;i<=37;i++) freqNorm[i] = maxF>0 ? freq[i]/maxF : 0;
-  const maxR = Math.max(...recRaw);
-  const recNorm = Array(38).fill(0);
-  for(let i=1;i<=37;i++) recNorm[i] = maxR>0 ? recRaw[i]/maxR : 0;
-  return { freq, freqNorm, recNorm, lastPos };
-}
-function computeExtraFreqRecency(){
-  const freq = Array(8).fill(0), lastPos = Array(8).fill(-1);
-  dataset.forEach((row, idx)=>{ if(row.extra>=1 && row.extra<=7){ freq[row.extra]++; lastPos[row.extra]=idx; }});
-  const N = dataset.length;
-  const recRaw = Array(8).fill(0);
-  for(let i=1;i<=7;i++) recRaw[i] = lastPos[i] === -1 ? 0 : 1/((N-1) - lastPos[i] + 1);
-  const maxF = Math.max(...freq);
-  const freqN = Array(8).fill(0); for(let i=1;i<=7;i++) freqN[i] = maxF>0? freq[i]/maxF : 0;
-  const maxR = Math.max(...recRaw); const recN = Array(8).fill(0); for(let i=1;i<=7;i++) recN[i] = maxR>0? recRaw[i]/maxR : 0;
-  return { freq, freqN, recN };
-}
-
-/* compute scores using dynamic weights from sliders (normalized) */
-function computeScoresFromUI(){
-  const fW = Number(freqRange.value);
-  const rW = Number(recRange.value);
-  // If both zero, fallback to equal weights
-  const sum = (fW + rW) || 1;
-  const wf = fW / sum;
-  const wr = rW / sum;
-  const { freqNorm, recNorm } = computeFreqRecency();
-  const scores = Array(38).fill(0);
-  for(let i=1;i<=37;i++) scores[i] = wf * freqNorm[i] + wr * recNorm[i];
-  return { scores, wf, wr };
-}
-function computeExtraScoresFromUI(){
-  const fW = Number(freqRange.value);
-  const rW = Number(recRange.value);
-  const sum = (fW + rW) || 1;
-  const wf = fW / sum;
-  const wr = rW / sum;
-  const { freqN, recN } = computeExtraFreqRecency();
-  const scores = Array(8).fill(0);
-  for(let i=1;i<=7;i++) scores[i] = wf * freqN[i] + wr * recN[i];
-  return scores;
-}
-
-/* forecast using UI weights */
-function forecastUI(guessSize=6, guessCount=3){
-  if(dataset.length===0) { alert('אין נתונים — הוסף או טען CSV'); return null; }
-  const { scores, wf, wr } = computeScoresFromUI();
-  const extraScores = computeExtraScoresFromUI();
-
-  let total=0; for(let i=1;i<=37;i++) total+=scores[i];
-  const prob = Array(38).fill(0); if(total>0) for(let i=1;i<=37;i++) prob[i]=scores[i]/total; else for(let i=1;i<=37;i++) prob[i]=1/37;
-
-  let totalE=0; for(let i=1;i<=7;i++) totalE+=extraScores[i];
-  const probExtra = Array(8).fill(0); if(totalE>0) for(let i=1;i<=7;i++) probExtra[i]=extraScores[i]/totalE; else for(let i=1;i<=7;i++) probExtra[i]=1/7;
-
-  const order = []; for(let i=1;i<=37;i++) order.push({num:i,score:scores[i],prob:prob[i]});
-  order.sort((a,b)=>b.score - a.score);
-
-  const guesses = [];
-  for(let g=0; g<guessCount; g++){
-    let start = g;
-    const selected = [];
-    let idx = start;
-    while(selected.length < guessSize){
-      if(idx >= order.length) idx = 0;
-      const c = order[idx].num; if(!selected.includes(c)) selected.push(c);
-      idx++;
-    }
-    selected.sort((a,b)=>a-b);
-    const extrasOrder = []; for(let i=1;i<=7;i++) extrasOrder.push({num:i,score:extraScores[i],prob:probExtra[i]});
-    extrasOrder.sort((a,b)=>b.score - a.score);
-    const extraPick = extrasOrder[g % extrasOrder.length].num;
-    guesses.push({ nums:selected, extra:extraPick });
-  }
-
-  const recommended = order.slice(0,guessSize).map(x=>x.num).sort((a,b)=>a-b);
-  const recommendedExtra = computeExtraScoresFromUI().map((v,i)=>({num:i,score:v})).slice(1).sort((a,b)=>b.score-a.score)[0].num;
-
-  const P_subset = guessSize >=6 ? comb(guessSize,6) / comb(37,6) : 0;
-  let pS=0; recommended.forEach(n=> pS+=prob[n]);
-  const modelApprox = Math.pow(pS, 6);
-  let jointProd=1; recommended.forEach(n=> jointProd *= prob[n] || (1/37));
-  const P_extra = probExtra[recommendedExtra] || (1/7);
-  const P_combined_model = modelApprox * P_extra;
-  const P_combined_combin = P_subset * P_extra;
-
-  return {
-    guesses, recommended: { nums: recommended, extra: recommendedExtra },
-    perNumberProb: prob, perExtraProb: probExtra,
-    P_subset, modelApprox, jointProd, P_extra, P_combined_model, P_combined_combin, pS,
-    weights: { wf, wr }
-  };
-}
-
-/* render forecast UI */
-function renderForecastUI(res, guessSize){
-  if(!res) return;
-  forecastArea.innerHTML = '';
-  const header = document.createElement('div'); header.innerHTML = `<strong>תחזית מומלצת — ${guessSize} מספרים</strong>`;
-  const recRow = document.createElement('div'); recRow.className='mt-2';
-  res.recommended.nums.forEach(n=>{
-    const b = document.createElement('span'); b.className='ball'; b.textContent = n;
-    const pct = document.createElement('span'); pct.className='percent'; pct.textContent = (res.perNumberProb[n]*100).toFixed(2) + '%';
-    recRow.appendChild(b); recRow.appendChild(pct);
-  });
-  const be = document.createElement('span'); be.className='ball extra'; be.textContent = res.recommended.extra;
-  const extraPct = document.createElement('span'); extraPct.className='percent'; extraPct.textContent = (res.perExtraProb[res.recommended.extra]*100).toFixed(2) + '%';
-  recRow.appendChild(be); recRow.appendChild(extraPct);
-
-  const weightsInfo = document.createElement('div'); weightsInfo.className='small-muted mt-2';
-  weightsInfo.innerHTML = `משקלים -- שכיחות: <strong>${(res.weights.wf*100).toFixed(0)}%</strong>, טריות: <strong>${(res.weights.wr*100).toFixed(0)}%</strong>`;
-
-  const stats = document.createElement('div'); stats.className='mt-3 small-muted';
-  stats.innerHTML = `
-    הסתברות קומבינטורית (6 בתוך קבוצה בגודל ${guessSize}): <strong>${(res.P_subset*100).toFixed(6)}%</strong><br>
-    סכום הסתברויות מודליות עבור הקבוצה (pS): <strong>${(res.pS*100).toFixed(4)}%</strong><br>
-    הערכה מודלית (pS^6): <strong>${(res.modelApprox*100).toFixed(6)}%</strong><br>
-    הסתברות משולבת משוערת (מודלית) כולל נוסף: <strong>${(res.P_combined_model*100).toFixed(8)}%</strong>
-  `;
-
-  const guessesDiv = document.createElement('div'); guessesDiv.className='mt-3';
-  guessesDiv.innerHTML = `<strong>ניחושים שנוצרו:</strong>`;
-  res.guesses.forEach((g,idx)=>{
-    const gdiv = document.createElement('div'); gdiv.className='mt-2';
-    gdiv.innerHTML = `<em>ניחוש ${idx+1}:</em> ${g.nums.map(x=>`<span class="chip">${x}</span>`).join('')} <span class="chip" style="background:${'#7dd3fc'};color:#000;margin-left:8px">${g.extra}</span>`;
-    guessesDiv.appendChild(gdiv);
-  });
-
-  forecastArea.appendChild(header);
-  forecastArea.appendChild(weightsInfo);
-  forecastArea.appendChild(recRow);
-  forecastArea.appendChild(stats);
-  forecastArea.appendChild(guessesDiv);
-}
-
-/* per-number grid */
-function renderPerNumberGrid(prob){
-  probsGrid.innerHTML='';
-  for(let i=1;i<=37;i++){
-    const el=document.createElement('div'); el.className='probCard';
-    el.innerHTML = `<div style="display:flex;justify-content:center"><div class="ball" style="width:36px;height:36px;font-size:13px">${i}</div></div>
-                    <div class="small-muted" style="margin-top:6px">${(prob[i]*100).toFixed(3)}%</div>`;
-    probsGrid.appendChild(el);
-  }
-}
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{font-size:12px;color:var(--muted);font-weight:700;text-align:right;padding:8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--surface);z-index:1}
+.tbl td{padding:8px;border-bottom:1px solid var(--line);vertical-align:middle}
+.tbl tr:last-child td{border-bottom:0}
+.scroll{max-height:520px;overflow:auto}
+.tbl .balls{flex-wrap:nowrap;gap:4px}
+@media (max-width:640px){.tbl td,.tbl th{padding:7px 4px}.hide-m{display:none}.tbl .ball.xs{--s:23px;font-size:10px}}
+.bar{height:8px;border-radius:4px;background:var(--surface-2);overflow:hidden;min-width:50px}
+.bar>i{display:block;height:100%;background:var(--accent);border-radius:4px}
+.pill{display:inline-block;font-size:12px;font-weight:700;border-radius:999px;padding:2px 9px;background:var(--surface-2);white-space:nowrap}
+.pill.good{background:color-mix(in srgb,var(--good) 18%,transparent);color:var(--good)}
+.pill.bad{background:color-mix(in srgb,var(--bad) 16%,transparent);color:var(--bad)}
+.pill.gold{background:color-mix(in srgb,var(--gold) 22%,transparent);color:color-mix(in srgb,var(--gold) 60%,var(--ink))}
 
 /* charts */
-function renderCharts(){
-  const freq = Array(37).fill(0);
-  const extraFreq = Array(7).fill(0);
-  dataset.forEach(r=>{ r.nums.forEach(n=> freq[n-1]++); if(r.extra>=1 && r.extra<=7) extraFreq[r.extra-1]++; });
+.chartbox{direction:ltr}
+svg.chart{width:100%;height:auto;display:block;overflow:visible}
+svg.chart text{fill:var(--muted);font-size:11px;font-family:Heebo,sans-serif}
+svg.chart .axis{stroke:var(--line)}
+svg.chart .b{fill:var(--accent);opacity:.82}
+svg.chart .b2{fill:var(--cool);opacity:.82}
+svg.chart .b:hover,svg.chart .b2:hover{opacity:1}
+svg.chart .exp{stroke:var(--ink);stroke-dasharray:4 4;stroke-width:1.5;fill:none;opacity:.6}
+svg.chart .curve{stroke:var(--ink);stroke-width:2;fill:none;opacity:.7}
 
-  const ctx = document.getElementById('mainChart').getContext('2d');
-  if(mainChart) mainChart.destroy();
-  mainChart = new Chart(ctx, { type:'bar', data:{ labels:Array.from({length:37},(_,i)=>i+1), datasets:[{ data:freq, backgroundColor:'rgba(125,211,252,0.95)' }] }, options:{plugins:{legend:{display:false}}}});
+/* verdict */
+.verdict{display:flex;gap:16px;align-items:center}
+.gauge{flex:none;width:88px;height:88px;border-radius:50%;display:grid;place-items:center;font-family:Rubik;font-weight:800;font-size:18px;
+  background:conic-gradient(var(--good) calc(var(--p)*1%),var(--surface-2) 0);position:relative}
+.gauge::before{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--surface)}
+.gauge span{position:relative}
 
-  const ctx2 = document.getElementById('extraChart').getContext('2d');
-  if(extraChart) extraChart.destroy();
-  extraChart = new Chart(ctx2, { type:'bar', data:{ labels:Array.from({length:7},(_,i)=>i+1), datasets:[{ data:extraFreq, backgroundColor:'rgba(99,102,241,0.95)' }] }, options:{plugins:{legend:{display:false}}}});
+/* generator */
+.tickets{display:grid;gap:10px}
+.ticket{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface-2);border-radius:12px;padding:10px 12px}
+.ticket .tags{display:flex;gap:6px;flex-wrap:wrap}
+.picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;direction:ltr}
+.picker button{aspect-ratio:1;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:Rubik;font-weight:700;cursor:pointer;font-size:14px;padding:0}
+.picker button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.picker.strongs{grid-template-columns:repeat(7,minmax(0,48px))}
+.picker.strongs button.on{background:var(--strong);border-color:var(--strong);color:#fff}
+
+/* drop zone */
+.drop{display:block;border:2px dashed var(--line);border-radius:var(--r);padding:26px;text-align:center;background:var(--surface);cursor:pointer;transition:.15s}
+.drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
+.drop b{font-family:Rubik;font-size:17px}
+.formrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.formrow input[type=number]{width:62px}
+.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:12px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px)}
+.toast.on{opacity:1;transform:translateX(-50%)}
+footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--muted);font-size:13px}
+.tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;padding:6px 9px;border-radius:8px;z-index:60;opacity:0;transition:opacity .1s;white-space:nowrap}
+
+.nextdraw{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--surface) 60%)}
+.nextdraw .meta,.lastdraw .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
+.countdown{font-size:15px;font-weight:700;background:var(--surface-2);border-radius:10px;padding:6px 10px;white-space:nowrap;align-self:flex-start}
+.rangebar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:space-between}
+.kpis4{grid-template-columns:repeat(4,minmax(120px,1fr));flex:1}
+@media (max-width:860px){.kpis4{grid-template-columns:repeat(2,1fr)}}
+.rank{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.rk{display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:12px;padding:7px 9px}
+.rk .pos{font-size:11px;color:var(--muted);width:22px;text-align:center;font-family:Rubik}
+.rk .bar{flex:1}
+.rk.top{outline:2px solid var(--accent);outline-offset:-2px}
+.wrow{display:grid;grid-template-columns:150px 1fr 36px;gap:10px;align-items:center}
+.wrow input{width:100%;accent-color:var(--accent)}
+details summary{cursor:pointer;font-weight:700}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand"><span class="dot"></span><span>לוטו · מרכז ניתוח</span></div>
+    <nav class="tabs" id="tabs">
+      <button data-p="predict" class="on">תחזית</button>
+      <button data-p="overview">סקירה</button>
+      <button data-p="freq">שכיחות</button>
+      <button data-p="gaps">פערים</button>
+      <button data-p="pairs">זוגות</button>
+      <button data-p="dist">התפלגויות</button>
+      <button data-p="backtest">בדיקה לאחור</button>
+      <button data-p="gen">מחולל טפסים</button>
+      <button data-p="check">בדיקת טופס</button>
+      <button data-p="data">נתונים</button>
+    </nav>
+    <button class="iconbtn" id="themeBtn" title="מצב תצוגה" aria-label="מצב תצוגה">◐</button>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="hero" id="hero">
+    <div class="hero-grid">
+      <div class="card nextdraw">
+        <div class="meta">
+          <div><div class="eyebrow">ההגרלה הקרובה</div><h2 id="nextTitle">—</h2></div>
+          <div class="countdown num" id="countdown"></div>
+        </div>
+        <div class="muted small" id="nextMeta" style="margin-bottom:12px"></div>
+        <div class="eyebrow" style="margin-bottom:8px">התחזית המובילה <span id="nextModel" class="pill" style="margin-inline-start:6px"></span></div>
+        <div class="balls" id="nextBalls"></div>
+        <div class="ctrl" style="margin-top:14px"><button class="btn primary" data-goto="predict">לכל התחזיות והטפסים</button></div>
+      </div>
+      <div class="card lastdraw">
+        <div class="meta">
+          <div><div class="eyebrow">התוצאה האחרונה</div><h2 id="lastTitle">טוען נתונים…</h2></div>
+          <div class="muted small" id="lastMeta"></div>
+        </div>
+        <div class="balls" id="lastBalls"></div>
+        <div class="muted small" id="lastVsPred" style="margin-top:10px"></div>
+        <div id="freshBanner"></div>
+      </div>
+    </div>
+    <div class="card rangebar" style="margin-top:16px">
+      <div><div class="eyebrow" style="margin-bottom:8px">טווח הניתוח הסטטיסטי</div>
+        <div class="seg" id="rangeSeg">
+          <button data-r="all" class="on">כל הפורמט הנוכחי</button>
+          <button data-r="500">500</button>
+          <button data-r="200">200</button>
+          <button data-r="100">100</button>
+          <button data-r="50">50</button>
+        </div></div>
+      <div class="kpis kpis4">
+        <div class="kpi"><b class="num" id="kDraws">—</b><span>הגרלות בניתוח</span></div>
+        <div class="kpi"><b class="num" id="kSpan">—</b><span>תקופה</span></div>
+        <div class="kpi"><b class="num" id="kOdds">—</b><span>סיכוי לפרס ראשון בטופס</span></div>
+        <div class="kpi"><b class="num" id="kJack">—</b><span>הגרלות עם זוכה בפרס הראשון</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PREDICT -->
+  <section class="page on" id="p-predict">
+    <div class="sec-head"><div><h2>מנוע התחזיות</h2><p>כל מספר מקבל ציון משוקלל משישה אותות סטטיסטיים. בחרו מודל מוכן או כוונו משקלים בעצמכם. לכל מודל מוצג גם מה הוא היה חוזה בהגרלות האחרונות ומה יצא בפועל.</p></div></div>
+    <div class="grid2">
+      <div class="card stack">
+        <div><div class="eyebrow" style="margin-bottom:6px">מודל</div>
+          <div class="seg" id="preset"></div>
+          <div class="muted small" id="presetNote" style="margin-top:8px"></div></div>
+        <details id="weightsBox"><summary>כוונון משקלים ידני</summary><div id="weights" class="stack" style="margin-top:12px"></div></details>
+        <div class="kpis" id="modelKpis"></div>
+      </div>
+      <div class="card">
+        <h3>התחזית להגרלה הקרובה</h3>
+        <div class="balls start" id="predTop" style="margin:6px 0 10px"></div>
+        <div class="muted small" id="predTopNote"></div>
+        <div class="eyebrow" style="margin:14px 0 6px">מספרים חזקים מובילים</div>
+        <div class="balls start" id="predStrong"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="sec-head" style="margin-top:0"><div><h3>דירוג כל 37 המספרים</h3><p class="small">רחפו מעל מספר כדי לראות את פירוט האותות.</p></div></div>
+      <div class="rank" id="rankGrid"></div>
+    </div>
+
+    <div class="grid2" style="margin-top:16px">
+      <div class="card stack">
+        <h3>טפסים לפי המודל</h3>
+        <div class="ctrl">
+          <label for="pCount">כמות</label><select id="pCount"><option>1</option><option>2</option><option>4</option><option selected>6</option><option>8</option><option>10</option><option>14</option></select>
+          <label for="pSpread">פיזור</label><select id="pSpread"><option value="7">ממוקד</option><option value="3.5" selected>מאוזן</option><option value="1.5">מגוון</option></select>
+          <label class="ctrl small"><input type="checkbox" id="pBalance" checked> סינון איזון</label>
+        </div>
+        <div class="ctrl"><button class="btn primary" id="pGen">צור טפסים</button><button class="btn" id="pCopy">העתק</button></div>
+        <div class="tickets" id="pTickets"></div>
+      </div>
+      <div class="card stack">
+        <h3>טופס שיטתי</h3>
+        <p class="muted small" style="margin:-6px 0 0">בוחר את K המספרים המדורגים ביותר. בטופס שיטתי כל צירוף של 6 מתוכם משתתף.</p>
+        <div class="ctrl"><label for="sysK">מספרים</label><select id="sysK"><option>7</option><option selected>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></div>
+        <div id="sysOut"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="sec-head" style="margin-top:0"><div><h3>תחזית מול תוצאה</h3><p class="small">מה המודל הנבחר היה חוזה לפני כל אחת מההגרלות האחרונות, על סמך מה שהיה ידוע עד אז בלבד.</p></div></div>
+      <div class="scroll"><table class="tbl" id="pvTbl"></table></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>השוואת כל המודלים</h3>
+      <p class="muted small" style="margin-top:-4px">ממוצע הפגיעות של 6 המספרים המובילים בכל מודל, ב־300 ההגרלות האחרונות. בחירה אקראית נותנת בממוצע 0.973. כשמשווים כמה מודלים, סטייה של כ־2σ יכולה להופיע גם במקרה. מה שקובע הוא אם היתרון נשמר לאורך זמן, ואפשר לעקוב אחרי זה כאן אחרי כל הגרלה.</p>
+      <div class="scroll" style="max-height:none"><table class="tbl" id="cmpTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- OVERVIEW -->
+  <section class="page" id="p-overview">
+    <div class="grid3">
+      <div class="card"><h3>המספרים החמים</h3><p class="muted small" style="margin:-4px 0 10px">הופיעו הכי הרבה בטווח שנבחר</p><div class="balls start" id="ovHot"></div></div>
+      <div class="card"><h3>המספרים הקרים</h3><p class="muted small" style="margin:-4px 0 10px">הופיעו הכי מעט בטווח שנבחר</p><div class="balls start" id="ovCold"></div></div>
+      <div class="card"><h3>הכי הרבה זמן בלי להופיע</h3><p class="muted small" style="margin:-4px 0 10px">מספר ההגרלות מאז ההופעה האחרונה</p><div class="balls start" id="ovDue"></div></div>
+    </div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><h3>האם ההגרלות אקראיות?</h3><div class="verdict" id="ovVerdict"></div></div>
+      <div class="card"><h3>האם אפשר לחזות? בדיקה לאחור בקצרה</h3><div id="ovBack" class="muted"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="sec-head" style="margin-top:0"><h3>הגרלות אחרונות</h3><button class="btn" data-goto="data">לכל ההגרלות</button></div>
+      <div class="scroll" style="max-height:none"><table class="tbl" id="ovRecent"></table></div>
+    </div>
+  </section>
+
+  <!-- FREQ -->
+  <section class="page" id="p-freq">
+    <div class="sec-head"><div><h2>שכיחות המספרים</h2><p>כמה פעמים עלה כל מספר, בהשוואה למה שצפוי באקראיות מלאה. הערך σ מראה כמה רחוק המספר מהצפוי ביחידות של סטיית תקן: עד ±2 זו תנודה רגילה.</p></div>
+      <div class="legend"><span>מעל הצפוי</span><i></i><span>מתחת לצפוי</span></div></div>
+    <div class="card"><div class="heat" id="heat"></div></div>
+    <div class="card" style="margin-top:16px"><h3>שכיחות לפי מספר (הקו המקווקו: הצפוי)</h3><div class="chartbox" id="freqChart"></div></div>
+    <div class="grid2" style="margin-top:16px">
+      <div class="card"><h3>המספר החזק</h3><div class="chartbox" id="strongChart"></div></div>
+      <div class="card"><h3>מבחן חי בריבוע</h3><div id="chiBox"></div></div>
+    </div>
+  </section>
+
+  <!-- GAPS -->
+  <section class="page" id="p-gaps">
+    <div class="sec-head"><div><h2>פערים והופעות</h2><p>כמה הגרלות עברו מאז שכל מספר עלה, לצד הפער הממוצע והארוך ביותר שלו. באקראיות, הפער הממוצע הצפוי הוא כ־6.2 הגרלות. מספר "שמגיע לו" לא מקבל סיכוי גבוה יותר: לכדורים אין זיכרון.</p></div></div>
+    <div class="card"><div class="scroll"><table class="tbl" id="gapTbl"></table></div></div>
+  </section>
+
+  <!-- PAIRS -->
+  <section class="page" id="p-pairs">
+    <div class="sec-head"><div><h2>זוגות ושלישיות</h2><p>צירופים שעלו יחד הכי הרבה פעמים. כל זוג מסוים צפוי להופיע בכ־2.25% מההגרלות.</p></div>
+      <div class="ctrl"><label class="small muted" for="pairFocus">מספר מוקד</label><select id="pairFocus"><option value="0">כל הזוגות</option></select></div></div>
+    <div class="grid2">
+      <div class="card"><h3 id="pairTitle">הזוגות הנפוצים</h3><table class="tbl" id="pairTbl"></table></div>
+      <div class="card"><h3>השלישיות הנפוצות</h3><table class="tbl" id="tripTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- DIST -->
+  <section class="page" id="p-dist">
+    <div class="sec-head"><div><h2>התפלגויות</h2><p>מבנה התוצאות לעומת התאוריה. העמודות הן מה שקרה, והקו הוא מה שהמתמטיקה צופה.</p></div></div>
+    <div class="grid2">
+      <div class="card"><h3>סכום ששת המספרים</h3><div class="chartbox" id="sumChart"></div><div class="muted small" id="sumNote"></div></div>
+      <div class="card"><h3>כמה מספרים אי־זוגיים</h3><div class="chartbox" id="oddChart"></div></div>
+      <div class="card"><h3>כמה מספרים נמוכים (1–18)</h3><div class="chartbox" id="lowChart"></div></div>
+      <div class="card"><h3>מספרים עוקבים בהגרלה</h3><div id="consBox"></div></div>
+      <div class="card"><h3>ממוצע מספרים לכל עשרת</h3><div class="chartbox" id="decChart"></div></div>
+      <div class="card"><h3>מספרים שחזרו מההגרלה הקודמת</h3><div class="chartbox" id="repChart"></div></div>
+    </div>
+  </section>
+
+  <!-- BACKTEST -->
+  <section class="page" id="p-backtest">
+    <div class="sec-head"><div><h2>בדיקה לאחור</h2><p>בכל הגרלה בעבר, כל שיטה בחרה 6 מספרים על סמך ההגרלות שקדמו לה בלבד, ואז ספרנו כמה מהם עלו בפועל. בבחירה אקראית התוחלת היא 0.973 פגיעות לטופס.</p></div>
+      <div class="ctrl">
+        <label class="small muted" for="btN">הגרלות לבדיקה</label>
+        <select id="btN"><option>100</option><option>300</option><option>600</option><option value="99999" selected>כל ההיסטוריה</option></select>
+        <label class="small muted" for="btW">חלון היסטוריה</label>
+        <select id="btW"><option>30</option><option selected>100</option><option>300</option></select>
+        <button class="btn primary" id="btRun">הרץ</button>
+      </div></div>
+    <div class="card"><div class="scroll" style="max-height:none"><table class="tbl" id="btTbl"></table></div><div class="muted small" id="btNote" style="margin-top:10px"></div></div>
+  </section>
+
+  <!-- GENERATOR -->
+  <section class="page" id="p-gen">
+    <div class="sec-head"><div><h2>מחולל טפסים</h2><p>לכל צירוף בדיוק אותו סיכוי לעלות. מה שכן אפשר לשפר הוא <b>עם כמה אנשים תתחלקו בפרס</b> אם תזכו: מצב "חכם" נמנע מצירופים שהרבה אנשים ממלאים, כמו תאריכים, רצפים ותבניות.</p></div></div>
+    <div class="grid2">
+      <div class="card stack">
+        <div><div class="eyebrow" style="margin-bottom:6px">שיטה</div>
+          <div class="seg" id="genMode">
+            <button data-m="smart" class="on">חכם (פחות חלוקה)</button>
+            <button data-m="random">אקראי</button>
+            <button data-m="hot">חמים</button>
+            <button data-m="cold">קרים</button>
+            <button data-m="due">מגיע לו</button>
+          </div>
+          <div class="muted small" id="genModeNote" style="margin-top:8px"></div>
+        </div>
+        <div class="ctrl">
+          <label for="genCount">כמות טפסים</label><select id="genCount"><option>1</option><option>2</option><option selected>4</option><option>6</option><option>8</option><option>10</option><option>14</option></select>
+          <label for="genFixed" style="margin-inline-start:10px">מספרים קבועים</label><input type="text" id="genFixed" placeholder="למשל 7, 19" style="width:120px">
+        </div>
+        <div class="ctrl"><button class="btn primary" id="genBtn">צור טפסים</button><button class="btn" id="genCopy">העתק</button></div>
+      </div>
+      <div class="card"><div class="tickets" id="tickets"><div class="muted">לחצו "צור טפסים".</div></div></div>
+    </div>
+  </section>
+
+  <!-- CHECK -->
+  <section class="page" id="p-check">
+    <div class="sec-head"><div><h2>בדיקת טופס מול ההיסטוריה</h2><p>בחרו 6 מספרים ומספר חזק, ותראו מה הטופס היה זוכה לו מילאתם אותו בכל הגרלה מאז 2011.</p></div></div>
+    <div class="grid2">
+      <div class="card stack">
+        <div><div class="eyebrow" style="margin-bottom:6px">6 מספרים</div><div class="picker" id="pickMain"></div></div>
+        <div><div class="eyebrow" style="margin-bottom:6px">מספר חזק</div><div class="picker strongs" id="pickStrong"></div></div>
+        <div class="ctrl"><button class="btn" id="pickRand">מלא אקראית</button><button class="btn" id="pickClear">נקה</button></div>
+      </div>
+      <div class="card" id="checkOut"><div class="muted">בחרו 6 מספרים ומספר חזק.</div></div>
+    </div>
+  </section>
+
+  <!-- DATA -->
+  <section class="page" id="p-data">
+    <div class="sec-head"><div><h2>ניהול נתונים</h2><p>המאגר נטען אוטומטית מהקובץ <span class="num">lotto.csv</span> שבאתר. כדי לעדכן, הורידו את קובץ התוצאות מ<a href="https://www.pais.co.il/lotto/archive.aspx" target="_blank" rel="noopener">ארכיון הלוטו של מפעל הפיס</a> וגררו אותו לכאן. ההגרלות מתמזגות לפי מספר ההגרלה, בלי כפילויות.</p></div></div>
+    <div class="grid2">
+      <div class="stack">
+        <label class="drop" id="drop">
+          <input type="file" id="fileIn" hidden>
+          <b>גררו לכאן קובץ CSV או JSON</b><div class="muted small">או לחצו לבחירה · כולל קובץ התוצאות של מפעל הפיס (Windows‑1255 או UTF‑8)</div>
+        </label>
+        <div id="importMsg"></div>
+        <div class="card">
+          <h3>הדבקת תוצאות</h3>
+          <p class="muted small" style="margin-top:-6px">אפשר להעתיק שורות מאתר הפיס או מאקסל ולהדביק כאן. כל שורה: מס׳ הגרלה, תאריך, 6 מספרים, חזק.</p>
+          <textarea id="pasteBox" rows="4" style="width:100%;font:inherit;direction:ltr;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:8px" placeholder="3872,29/11/2025,4,8,15,27,31,36,6"></textarea>
+          <div class="ctrl" style="margin-top:8px"><button class="btn primary" id="pasteBtn">ייבא</button></div>
+        </div>
+        <div class="card">
+          <h3>הוספת הגרלה ידנית</h3>
+          <form id="addForm" class="stack">
+            <div class="formrow" id="addNums" style="direction:ltr;justify-content:flex-end"></div>
+            <div class="formrow"><label class="small muted" for="addStrong">חזק</label><input type="number" id="addStrong" min="1" max="7" required>
+              <label class="small muted" for="addId">מס׳ הגרלה</label><input type="number" id="addId" style="width:90px" required>
+              <label class="small muted" for="addDate">תאריך</label><input type="date" id="addDate" required></div>
+            <div><button class="btn primary" type="submit">הוסף הגרלה</button></div>
+          </form>
+        </div>
+        <div class="card">
+          <h3>ייצוא ואיפוס</h3>
+          <div class="ctrl"><button class="btn" id="expCsv">ייצוא CSV</button><button class="btn" id="expJson">ייצוא JSON</button><button class="btn danger" id="resetLocal">מחיקת תוספות מקומיות</button></div>
+          <p class="muted small" style="margin-bottom:0" id="localNote"></p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="sec-head" style="margin-top:0"><h3>כל ההגרלות</h3><input type="text" id="search" placeholder="חיפוש: מס׳ הגרלה, תאריך או מספרים" style="width:min(260px,100%)"></div>
+        <div class="scroll"><table class="tbl" id="allTbl"></table></div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer><div class="wrap">
+  הניתוח הוא סטטיסטיקה תיאורית בלבד. כל הגרלה בלתי תלויה בקודמותיה, ואף שיטה לא מגדילה את הסיכוי לזכות. מקור הנתונים: מפעל הפיס.
+  הניתוח כולל רק את הפורמט הנוכחי (37 מספרים + חזק 1–7, מאז מרץ 2011). הגרלות מוקדמות יותר נשמרות במאגר אבל לא נכנסות לחישובים.
+</div></footer>
+<div class="toast" id="toast" role="status"></div>
+<div class="tip" id="tip"></div>
+
+<script>
+'use strict';
+/* ---------- constants ---------- */
+const N_MAIN = 37, N_STRONG = 7, PICK = 6;
+const FORMAT_START = '2011-03-05';            // first 37 + strong(1-7) draw, #2234
+const LS_USER = 'lotto_hub_user_draws_v2';
+const LS_THEME = 'lotto_hub_theme';
+const LS_RANGE = 'lotto_hub_range';
+const P_HIT = PICK / N_MAIN;
+const $ = s => document.querySelector(s);
+const $$ = s => document.querySelectorAll(s);
+const ls = { get(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }, set(k,v){ try{ localStorage.setItem(k,v); }catch(e){} } };
+const NUMS = [...Array(N_MAIN)].map((_,i)=>i+1);
+
+/* ---------- math ---------- */
+function C(n,k){ if(k<0||k>n) return 0; let r=1; for(let i=1;i<=k;i++) r=r*(n-k+i)/i; return Math.round(r); }
+function lnGamma(z){ const c=[0.99999999999980993,676.5203681218851,-1259.1392167224028,771.32342877765313,-176.61502916214059,12.507343278686905,-0.13857109526572012,9.9843695780195716e-6,1.5056327351493116e-7];
+  if(z<0.5) return Math.log(Math.PI/Math.sin(Math.PI*z))-lnGamma(1-z); z-=1; let x=c[0]; for(let i=1;i<9;i++) x+=c[i]/(z+i); const t=z+7.5; return 0.5*Math.log(2*Math.PI)+(z+0.5)*Math.log(t)-t+Math.log(x); }
+function gammaQ(a,x){ // regularized upper incomplete gamma Q(a,x)
+  if(x<=0) return 1;
+  const lead = -x+a*Math.log(x)-lnGamma(a);
+  if(x<a+1){ let s=1/a,t=s; for(let n=1;n<500;n++){ t*=x/(a+n); s+=t; if(Math.abs(t)<Math.abs(s)*1e-14) break; } return 1-s*Math.exp(lead); }
+  let b=x+1-a,c=1e300,d=1/b,h=d; for(let i=1;i<500;i++){ const an=-i*(i-a); b+=2; d=an*d+b; if(Math.abs(d)<1e-300) d=1e-300; c=b+an/c; if(Math.abs(c)<1e-300) c=1e-300; d=1/d; const del=d*c; h*=del; if(Math.abs(del-1)<1e-14) break; }
+  return Math.exp(lead)*h; }
+const chiP = (chi,df) => gammaQ(df/2, chi/2);
+const hyper = (k,K,n=PICK,Nn=N_MAIN) => C(K,k)*C(Nn-K,n-k)/C(Nn,n);
+function rnd(n){ const a=new Uint32Array(1); crypto.getRandomValues(a); return a[0]%n; }
+const rnd01 = () => { const a=new Uint32Array(1); crypto.getRandomValues(a); return a[0]/4294967296; };
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=rnd(i+1); [a[i],a[j]]=[a[j],a[i]]; } return a; }
+const fmt = (x,d=0) => Number(x).toLocaleString('he-IL',{minimumFractionDigits:d,maximumFractionDigits:d});
+const esc = s => String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------- parsing ---------- */
+function decodeBuffer(buf){
+  try { return new TextDecoder('utf-8',{fatal:true}).decode(buf).replace(/^﻿/,''); }
+  catch(e){ return new TextDecoder('windows-1255').decode(buf); }   // Pais exports are Windows-1255
+}
+function splitCsvLine(line){
+  const out=[]; let cell='', q=false;
+  for(let i=0;i<line.length;i++){ const ch=line[i];
+    if(q){ if(ch==='"'){ if(line[i+1]==='"'){ cell+='"'; i++; } else q=false; } else cell+=ch; }
+    else if(ch==='"') q=true; else if(ch===','||ch===';'||ch==='\t'){ out.push(cell.trim()); cell=''; } else cell+=ch; }
+  out.push(cell.trim()); return out;
+}
+function toISO(s){
+  s=String(s||'').trim(); let m;
+  if((m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/))) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+  if((m=s.match(/^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})$/))){ let y=m[3]; if(y.length===2) y=(+y>60?'19':'20')+y; return `${y}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`; }
+  return null;
+}
+const isDate = s => toISO(s)!==null;
+function mkDraw(id,date,nums,strong,w6,w6d){
+  nums = nums.map(Number);
+  if(nums.length!==6 || nums.some(n=>!Number.isInteger(n)||n<1||n>49) || new Set(nums).size!==6) return null;
+  strong = Number(strong); if(!Number.isInteger(strong)) return null;
+  const iso = toISO(date); if(!iso) return null;
+  id = Number(id); if(!Number.isInteger(id)||id<=0) id = null;
+  return { id, date:iso, nums:nums.sort((a,b)=>a-b), strong, w6:Number(w6)||0, w6d:Number(w6d)||0 };
+}
+/* Generic row parser: finds the date cell, takes the integer just before it as the draw number
+   and the integers after it as 6 numbers + strong (+ winner counts). Handles the Pais export,
+   date-first rows, quoted cells, extra columns, times after the date, and the old site's
+   export ("n1,..,n6",extra,date). */
+const intCell = c => { const t=String(c??'').replace(/["'\s]/g,''); return /^\d{1,6}$/.test(t)? Number(t) : null; };
+function rowToDraw(c){
+  c = c.map(x=>String(x??'').trim());
+  let di = c.findIndex(x=>isDate(x.split(/\s+/)[0]));
+  if(di<0) return null;
+  const date = c[di].split(/\s+/)[0];
+  // old export: one cell holds all six numbers
+  const packed = c.find(x=>/^\s*\d{1,2}([\s,;|-]+\d{1,2}){5}\s*$/.test(x));
+  if(packed){ const nums=packed.split(/[^\d]+/).filter(Boolean).map(Number); const rest=c.filter(x=>x!==packed&&x!==c[di]).map(intCell).filter(v=>v!==null); return mkDraw(null,date,nums,rest[0]); }
+  let id=null; for(let i=di-1;i>=0;i--){ const v=intCell(c[i]); if(v!==null){ id=v; break; } }
+  const after=[]; for(let i=di+1;i<c.length;i++){ const v=intCell(c[i]); if(v===null){ if(after.length>=7) break; else continue; } after.push(v); }
+  if(after.length<7) return null;
+  return mkDraw(id,date,after.slice(0,6),after[6],after[7],after[8]);
+}
+function parseCsv(text){
+  return text.split(/\r?\n/).map(line=>{ if(!line.trim()) return null; let c=splitCsvLine(line); if(c.length<4) c=line.trim().split(/[\s,;|]+/); return rowToDraw(c); }).filter(Boolean);
+}
+async function parseXlsx(buf){
+  if(!window.XLSX) await new Promise((ok,bad)=>{ const sc=document.createElement('script'); sc.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'; sc.onload=ok; sc.onerror=bad; document.head.appendChild(sc); });
+  const wb=XLSX.read(buf,{type:'array',cellDates:false}); const out=[];
+  wb.SheetNames.forEach(n=> XLSX.utils.sheet_to_json(wb.Sheets[n],{header:1,raw:false,dateNF:'dd/mm/yyyy'}).forEach(r=>{ const d=rowToDraw(r); if(d) out.push(d); }));
+  return out;
+}
+function parseJson(text){
+  const arr = JSON.parse(text);
+  return (Array.isArray(arr)?arr:[]).map(it=> it && mkDraw(it.id??it.draw, it.date, it.nums||[], it.strong??it.extra, it.w6, it.w6d)).filter(Boolean);
 }
 
-/* render all */
+/* ---------- dataset ---------- */
+let baseDraws = [], userDraws = [], all = [], cur = [], view = [];
+let range = ls.get(LS_RANGE) || 'all';
+const keyOf = d => d.id ? 'i'+d.id : 'd'+d.date;
+function rebuild(){
+  const m = new Map();
+  baseDraws.forEach(d=>m.set(keyOf(d),d));
+  userDraws.forEach(d=>{ if(!m.has(keyOf(d))) m.set(keyOf(d),d); });
+  all = [...m.values()].sort((a,b)=> b.date.localeCompare(a.date) || (b.id||0)-(a.id||0));
+  cur = all.filter(d=> d.date>=FORMAT_START && d.strong>=1 && d.strong<=N_STRONG && d.nums[5]<=N_MAIN);
+  view = range==='all' ? cur : cur.slice(0, Number(range));
+}
+function saveUser(){ ls.set(LS_USER, JSON.stringify(userDraws)); }
+function loadUser(){ try{ userDraws = (JSON.parse(ls.get(LS_USER)||'[]')||[]).map(d=>mkDraw(d.id,d.date,d.nums,d.strong,d.w6,d.w6d)).filter(Boolean); }catch(e){ userDraws=[]; } }
+
+/* ---------- statistics ---------- */
+function stats(draws){                          // draws: newest first
+  const N = draws.length;
+  const freq = Array(N_MAIN+1).fill(0), sfreq = Array(N_STRONG+1).fill(0);
+  const last = Array(N_MAIN+1).fill(-1), maxGap = Array(N_MAIN+1).fill(0), prev = Array(N_MAIN+1).fill(-1);
+  draws.forEach((d,i)=>{ d.nums.forEach(n=>{ freq[n]++; if(last[n]<0) last[n]=i; if(prev[n]>=0) maxGap[n]=Math.max(maxGap[n], i-prev[n]-1); prev[n]=i; }); sfreq[d.strong]++; });
+  for(let n=1;n<=N_MAIN;n++){ if(last[n]<0) last[n]=N; maxGap[n]=Math.max(maxGap[n], last[n]); }
+  const e = N*P_HIT, sd = Math.sqrt(N*P_HIT*(1-P_HIT));
+  const z = freq.map((f,n)=> n? (f-e)/(sd||1) : 0);
+  let chiRaw=0; for(let n=1;n<=N_MAIN;n++) chiRaw += (freq[n]-e)**2/(e||1);
+  // 6 balls are drawn without replacement, so the counts are negatively correlated:
+  // scaling by (37-1)/(37-6) gives a statistic that is chi-square with 36 df.
+  const chi = chiRaw*(N_MAIN-1)/(N_MAIN-PICK);
+  const es=N/N_STRONG; let chiS=0; for(let s=1;s<=N_STRONG;s++) chiS += (sfreq[s]-es)**2/(es||1);
+  return { N, freq, sfreq, last, maxGap, e, sd, z, chi, chiS, pMain: N? chiP(chi,N_MAIN-1):1, pStrong: N? chiP(chiS,N_STRONG-1):1 };
+}
+const topBy = score => NUMS.slice().sort((a,b)=>score[b]-score[a]||a-b).slice(0,PICK);
+const byFreq = st => NUMS.slice().sort((a,b)=> st.freq[b]-st.freq[a] || a-b);
+
+/* ---------- ui helpers ---------- */
+const decCls = n => n<=9?'d1':n<=19?'d2':n<=29?'d3':'d4';
+const ball = (n,cls='') => `<span class="ball ${cls} ${decCls(n)}">${n}</span>`;
+const sball = (n,cls='') => `<span class="ball strong ${cls}">${n}</span>`;
+const ballsHtml = (d,size='sm',hits,hitS) => d.nums.map(n=>ball(n,size+(hits&&hits.has(n)?' hit':''))).join('') + `<span class="plus">+</span>` + sball(d.strong,size+(hitS&&d.strong===hitS?' hit':''));
+const dateHe = iso => { const [y,m,d]=iso.split('-'); return `${d}/${m}/${y}`; };
+const dow = iso => ['ראשון','שני','שלישי','רביעי','חמישי','שישי','שבת'][new Date(iso+'T12:00:00').getDay()];
+const sumOf = a => a.reduce((x,y)=>x+y,0);
+function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),3000); }
+const tip = $('#tip');
+document.addEventListener('mousemove',e=>{ const el=e.target.closest&&e.target.closest('[data-tip]'); if(!el){ tip.style.opacity=0; return; } tip.textContent=el.dataset.tip; tip.style.opacity=1; const w=tip.offsetWidth; tip.style.left=Math.min(innerWidth-w-8,Math.max(8,e.clientX-w/2))+'px'; tip.style.top=(e.clientY-38)+'px'; });
+
+/* SVG bar chart. bars: [{label,value,tip,cls}], expected: number (flat line) or array (per bar), curve: array */
+const CHARTS = new Map();
+function chart(id, bars, opts){ CHARTS.set(id,[bars,opts]); drawChart(id); }
+function drawChart(id){ const el=document.getElementById(id), w=el.clientWidth; if(!w) return; const [bars,opts]=CHARTS.get(id); el.innerHTML=barChart(bars,{...opts,W:w}); }
+const redrawCharts = () => CHARTS.forEach((_,id)=>drawChart(id));
+let _rz; addEventListener('resize',()=>{ clearTimeout(_rz); _rz=setTimeout(redrawCharts,120); });
+function barChart(bars,{expected=null,curve=null,h=200,cls='b',labelEvery=1,W=640}={}){
+  const H=h, pl=36, pb=22, pt=10, pr=6;
+  const top = Math.max(1e-9,...bars.map(b=>b.value), ...(Array.isArray(expected)?expected:[expected||0]), ...(curve||[0]));
+  const maxV = top*1.1, bw=(W-pl-pr)/bars.length, y = v => pt+(H-pt-pb)*(1-v/maxV);
+  let s = `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img">`;
+  for(let i=0;i<=4;i++){ const v=top*i/4, yy=y(v); s+=`<line class="axis" x1="${pl}" x2="${W-pr}" y1="${yy}" y2="${yy}" opacity=".6"/><text x="${pl-6}" y="${yy+4}" text-anchor="end">${fmt(v, top<10?1:0)}</text>`; }
+  bars.forEach((b,i)=>{ const x=pl+i*bw; s+=`<rect class="${b.cls||cls}" x="${x+bw*.14}" y="${y(b.value)}" width="${bw*.72}" height="${Math.max(0,y(0)-y(b.value))}" rx="${Math.min(4,bw*.2)}" data-tip="${esc(b.tip||b.label+': '+fmt(b.value))}"/>`;
+    if(i%Math.max(labelEvery,Math.ceil(22/bw))===0) s+=`<text x="${x+bw/2}" y="${H-6}" text-anchor="middle">${esc(b.label)}</text>`; });
+  const line = arr => `<polyline class="curve" points="${arr.map((v,i)=>`${pl+i*bw+bw/2},${y(v)}`).join(' ')}"/>`;
+  if(expected!==null && !Array.isArray(expected)) s+=`<line class="exp" x1="${pl}" x2="${W-pr}" y1="${y(expected)}" y2="${y(expected)}"/>`;
+  if(Array.isArray(expected)) s+=line(expected);
+  if(curve) s+=line(curve);
+  return s+'</svg>';
+}
+
+/* ---------- renderers ---------- */
+let ST = null;
 function renderAll(){
-  renderTable();
-  renderCharts();
-  // update per-number grid according to current weights
-  const { scores } = computeScoresFromUI();
-  let sum=0; for(let i=1;i<=37;i++) sum+=scores[i];
-  const prob = Array(38).fill(0);
-  if(sum>0) for(let i=1;i<=37;i++) prob[i]=scores[i]/sum; else for(let i=1;i<=37;i++) prob[i]=1/37;
-  renderPerNumberGrid(prob);
+  rebuild();
+  ST = stats(view);
+  renderHero(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
+  if($('#p-backtest.on')) runBacktest();
+  renderCheck();
+}
+function renderHero(){
+  $('#kOdds').textContent = '1 : ' + fmt(C(N_MAIN,PICK)*N_STRONG);
+  const d = all[0];
+  if(!d){ $('#lastTitle').textContent='אין נתונים'; $('#lastBalls').innerHTML=''; $('#freshBanner').innerHTML=`<div class="banner"><div>⚠️</div><div class="small"><b>המאגר ריק.</b> גררו קובץ תוצאות לעמוד.</div></div>`; return; }
+  $('#lastTitle').innerHTML = d.id ? `הגרלה <span class="num">${d.id}</span>` : 'הגרלה אחרונה';
+  $('#lastMeta').textContent = `יום ${dow(d.date)}, ${dateHe(d.date)}` + (d.w6? ` · ${d.w6} זוכים בפרס הראשון` : ' · ללא זוכה בפרס הראשון');
+  $('#lastBalls').innerHTML = ballsHtml(d,'');
+  const days = Math.floor((Date.now() - new Date(d.date+'T23:00:00'))/864e5);
+  $('#freshBanner').innerHTML = days>5
+    ? `<div class="banner"><div>⚠️</div><div><b>המאגר לא מעודכן: ההגרלה האחרונה בו הייתה לפני ${fmt(days)} ימים.</b><div class="small">הורידו את קובץ התוצאות מ<a href="https://www.pais.co.il/lotto/archive.aspx" target="_blank" rel="noopener">ארכיון הלוטו של מפעל הפיס</a> וגררו אותו לכל מקום בעמוד, או הוסיפו הגרלות ידנית ב<a href="#" data-goto="data">עמוד הנתונים</a>.</div></div></div>`
+    : `<div class="banner ok"><div>✓</div><div class="small"><b>המאגר מעודכן.</b> הגרלות הלוטו נערכות בימי שלישי ושבת.</div></div>`;
+  $('#kDraws').textContent = fmt(view.length);
+  $('#kSpan').textContent = view.length ? `${view[view.length-1].date.slice(0,4)}–${view[0].date.slice(0,4)}` : '—';
+  const jw = view.filter(x=>x.w6>0).length;
+  $('#kJack').textContent = view.length ? `${fmt(jw)} (${fmt(100*jw/view.length,1)}%)` : '—';
+}
+function renderOverview(){
+  const o = byFreq(ST);
+  $('#ovHot').innerHTML = o.slice(0,6).map(n=>`<span data-tip="${n}: ${ST.freq[n]} הופעות">${ball(n,'sm')}</span>`).join('');
+  $('#ovCold').innerHTML = o.slice(-6).reverse().map(n=>`<span data-tip="${n}: ${ST.freq[n]} הופעות">${ball(n,'sm')}</span>`).join('');
+  const due = NUMS.slice().sort((a,b)=>ST.last[b]-ST.last[a]).slice(0,6);
+  $('#ovDue').innerHTML = due.map(n=>`<span data-tip="${n}: ${ST.last[n]} הגרלות">${ball(n,'sm')}</span>`).join('');
+  const p = ST.pMain, ok = p>0.05;
+  $('#ovVerdict').innerHTML = `<div class="gauge" style="--p:${Math.min(100,p*100)}"><span>${fmt(p,2)}</span></div>
+    <div><b>${ok?'כן. אין שום סימן להטיה.':'נמצאה סטייה חריגה. בדקו בטווח רחב יותר.'}</b>
+    <div class="muted small">מבחן חי בריבוע על ${fmt(ST.N)} הגרלות נותן p = ${fmt(p,3)}. כל ערך מעל 0.05 אומר שהפיזור תואם הגרלה הוגנת. למספר החזק: p = ${fmt(ST.pStrong,3)}.</div></div>`;
+  const bt = backtest(99999, 100);
+  const se = bt && Math.sqrt(PICK*P_HIT*(1-P_HIT)*(N_MAIN-PICK)/(N_MAIN-1)/bt.n), maxZ = bt ? Math.max(...bt.rows.map(r=>Math.abs(r.mean-PICK*P_HIT)/se)) : 0;
+  $('#ovBack').innerHTML = bt ? `בכל ${fmt(bt.n)} ההגרלות מאז 2011, כל שיטה בחרה 6 מספרים לפי 100 ההגרלות שקדמו. ממוצע הפגיעות לטופס: ${bt.rows.map(r=>`${r.name} <b class="num">${fmt(r.mean,2)}</b>`).join(' · ')}. באקראיות צפוי <b class="num">0.97</b>. ${maxZ<2?'אף שיטה לא עדיפה באופן מובהק.':'יש סטייה חריגה, אבל היא לא עקבית בין התקופות.'} <a href="#" data-goto="backtest">לפירוט המלא</a>` : 'אין מספיק הגרלות.';
+  const rows = cur.slice(0,10).map(d=>`<tr><td class="num">${d.id||'—'}</td><td class="num">${dateHe(d.date)}</td><td><div class="balls start">${ballsHtml(d,'xs')}</div></td><td class="num hide-m">${sumOf(d.nums)}</td><td class="hide-m">${d.w6?`<span class="pill gold">${d.w6} זוכים</span>`:'<span class="muted small">אין זוכה</span>'}</td></tr>`).join('');
+  $('#ovRecent').innerHTML = `<thead><tr><th>הגרלה</th><th>תאריך</th><th>תוצאה</th><th class="hide-m">סכום</th><th class="hide-m">פרס ראשון</th></tr></thead><tbody>${rows}</tbody>`;
+}
+function zColor(z){ const t=Math.max(-1,Math.min(1,z/3)); return `color-mix(in srgb, ${t>=0?'var(--accent)':'var(--cool)'} ${Math.round(Math.abs(t)*65)}%, var(--surface-2))`; }
+function renderFreq(){
+  $('#heat').innerHTML = NUMS.map(n=>{ const z=ST.z[n]; return `<div class="cell" style="--c:${zColor(z)}" data-tip="${n}: ${ST.freq[n]} הופעות · צפוי ${fmt(ST.e,1)} · ב־${fmt(100*ST.freq[n]/(ST.N||1),1)}% מההגרלות"><div class="n">${n}</div><div class="f num">${ST.freq[n]}</div><div class="z num">${z>=0?'+':''}${fmt(z,1)}σ</div></div>`; }).join('');
+  chart('freqChart',NUMS.map(n=>({label:n,value:ST.freq[n],tip:`${n}: ${ST.freq[n]} הופעות`})),{expected:ST.e,h:220});
+  chart('strongChart',[...Array(N_STRONG)].map((_,i)=>({label:i+1,value:ST.sfreq[i+1],cls:'b2',tip:`חזק ${i+1}: ${ST.sfreq[i+1]} (${fmt(100*ST.sfreq[i+1]/(ST.N||1),1)}%)`})),{expected:ST.N/N_STRONG,h:190});
+  const o=byFreq(ST);
+  $('#chiBox').innerHTML = `<table class="tbl">
+    <tr><td>מספרים ראשיים · χ² עם 36 דרגות חופש</td><td class="num"><b>${fmt(ST.chi,1)}</b></td><td><span class="pill ${ST.pMain>.05?'good':'bad'}">p = ${fmt(ST.pMain,3)}</span></td></tr>
+    <tr><td>מספר חזק · χ² עם 6 דרגות חופש</td><td class="num"><b>${fmt(ST.chiS,1)}</b></td><td><span class="pill ${ST.pStrong>.05?'good':'bad'}">p = ${fmt(ST.pStrong,3)}</span></td></tr>
+    <tr><td>החם ביותר מול הקר ביותר</td><td class="num"><b>${ST.freq[o[0]]} / ${ST.freq[o[N_MAIN-1]]}</b></td><td class="muted small">${o[0]} מול ${o[N_MAIN-1]}</td></tr></table>
+    <p class="muted small" style="margin-bottom:0">כש־p גבוה מ־0.05, ההבדלים בין המספרים הם תנודה אקראית רגילה. "חם" ו"קר" מתארים את העבר, לא את העתיד.</p>`;
+}
+function renderGaps(){
+  const rows = NUMS.slice().sort((a,b)=>ST.last[b]-ST.last[a]).map(n=>{
+    const avg = ST.freq[n]? ST.N/ST.freq[n] : ST.N, g=ST.last[n], ratio=g/avg;
+    const pill = ratio>=3?'bad':ratio>=1.5?'gold':'';
+    return `<tr><td>${ball(n,'xs')}</td><td class="num"><b>${g}</b></td><td class="num">${fmt(avg,1)}</td><td class="num">${ST.maxGap[n]}</td><td style="width:28%"><div class="bar" data-tip="${fmt(ratio,1)} פעמים הפער הממוצע"><i style="width:${Math.min(100,ratio/4*100)}%"></i></div></td><td><span class="pill ${pill}">×${fmt(ratio,1)}</span></td><td class="num">${ST.freq[n]}</td></tr>`; }).join('');
+  $('#gapTbl').innerHTML = `<thead><tr><th>מספר</th><th>הגרלות מאז</th><th>פער ממוצע</th><th>פער מקסימלי</th><th colspan="2">ביחס לממוצע</th><th>הופעות</th></tr></thead><tbody>${rows}</tbody>`;
+}
+function renderPairs(){
+  const sel=$('#pairFocus'); if(sel.options.length===1) NUMS.forEach(n=>sel.add(new Option(n,n)));
+  const focus=Number(sel.value), pc=new Map(), tc=new Map();
+  view.forEach(d=>{ const a=d.nums; for(let i=0;i<6;i++) for(let j=i+1;j<6;j++){ const k=a[i]*100+a[j]; pc.set(k,(pc.get(k)||0)+1);
+    if(!focus) for(let l=j+1;l<6;l++){ const t=a[i]*10000+a[j]*100+a[l]; tc.set(t,(tc.get(t)||0)+1); } } });
+  const expP = view.length*C(N_MAIN-2,PICK-2)/C(N_MAIN,PICK), expT = view.length*C(N_MAIN-3,PICK-3)/C(N_MAIN,PICK);
+  let pairs=[...pc.entries()].map(([k,v])=>({a:Math.floor(k/100),b:k%100,v}));
+  if(focus) pairs=pairs.filter(p=>p.a===focus||p.b===focus);
+  pairs.sort((x,y)=>y.v-x.v);
+  const mx = pairs[0]?.v||1;
+  $('#pairTitle').textContent = focus? `המספרים שעלו הכי הרבה יחד עם ${focus}` : 'הזוגות הנפוצים';
+  $('#pairTbl').innerHTML = `<thead><tr><th>זוג</th><th>פעמים</th><th></th><th>מול הצפוי</th></tr></thead><tbody>`+pairs.slice(0,15).map(p=>`<tr><td><div class="balls start">${ball(p.a,'xs')}${ball(p.b,'xs')}</div></td><td class="num"><b>${p.v}</b></td><td style="width:35%"><div class="bar"><i style="width:${100*p.v/mx}%"></i></div></td><td class="num">×${fmt(p.v/(expP||1),2)}</td></tr>`).join('')+'</tbody>'
+    + `<tfoot><tr><td colspan="4" class="muted small">זוג מסוים צפוי לעלות ${fmt(expP,1)} פעמים בטווח הזה.</td></tr></tfoot>`;
+  if(focus){ $('#tripTbl').innerHTML = '<tbody><tr><td class="muted">בחרו "כל הזוגות" כדי לראות שלישיות.</td></tr></tbody>'; return; }
+  const trips=[...tc.entries()].sort((x,y)=>y[1]-x[1]).slice(0,15);
+  $('#tripTbl').innerHTML = `<thead><tr><th>שלישייה</th><th>פעמים</th><th>מול הצפוי</th></tr></thead><tbody>`+trips.map(([k,v])=>`<tr><td><div class="balls start">${ball(Math.floor(k/10000),'xs')}${ball(Math.floor(k/100)%100,'xs')}${ball(k%100,'xs')}</div></td><td class="num"><b>${v}</b></td><td class="num">×${fmt(v/(expT||1),1)}</td></tr>`).join('')+'</tbody>'
+    + `<tfoot><tr><td colspan="3" class="muted small">שלישייה מסוימת צפויה ${fmt(expT,2)} פעמים. מתוך ${fmt(C(N_MAIN,3))} שלישיות אפשריות, תמיד יהיו כמה שיעלו פי כמה מהצפוי, במקרה.</td></tr></tfoot>`;
+}
+function renderDist(){
+  const N=view.length||1;
+  const sums=view.map(d=>sumOf(d.nums)), binW=10, bins=[];
+  for(let s=20;s<=200;s+=binW) bins.push({s,v:0});
+  sums.forEach(s=>{ const i=Math.min(bins.length-1,Math.floor((s-20)/binW)); if(i>=0) bins[i].v++; });
+  const mu=PICK*(N_MAIN+1)/2, sd=Math.sqrt(PICK*(N_MAIN*N_MAIN-1)/12*(N_MAIN-PICK)/(N_MAIN-1));
+  const curve=bins.map(b=>{ const x=b.s+binW/2-0.5; return N*binW*Math.exp(-((x-mu)**2)/(2*sd*sd))/(sd*Math.sqrt(2*Math.PI)); });
+  chart('sumChart',bins.map(b=>({label:b.s,value:b.v,tip:`סכום ${b.s}–${b.s+binW-1}: ${b.v} הגרלות`})),{curve,h:200,labelEvery:2});
+  const mean=sumOf(sums)/N, inBand=sums.filter(s=>Math.abs(s-mu)<=sd).length/N;
+  $('#sumNote').innerHTML = `ממוצע בפועל <b class="num">${fmt(mean,1)}</b> (בתאוריה ${fmt(mu)}). ${fmt(inBand*100,0)}% מההגרלות בטווח ${Math.round(mu-sd)}–${Math.round(mu+sd)}.`;
+  const odd=Array(7).fill(0), low=Array(7).fill(0); view.forEach(d=>{ odd[d.nums.filter(n=>n%2).length]++; low[d.nums.filter(n=>n<=18).length]++; });
+  const oddK=Math.ceil(N_MAIN/2);
+  chart('oddChart',odd.map((v,k)=>({label:`${k}/${6-k}`,value:v,tip:`${k} אי־זוגיים: ${v} (${fmt(100*v/N,1)}%) · צפוי ${fmt(100*hyper(k,oddK),1)}%`})),{expected:odd.map((_,k)=>N*hyper(k,oddK)),h:180});
+  chart('lowChart',low.map((v,k)=>({label:k,value:v,cls:'b2',tip:`${k} נמוכים: ${v} (${fmt(100*v/N,1)}%) · צפוי ${fmt(100*hyper(k,18),1)}%`})),{expected:low.map((_,k)=>N*hyper(k,18)),h:180});
+  const hasCons=view.filter(d=>d.nums.some((n,i)=>i&&n-d.nums[i-1]===1)).length;
+  const theo=1-C(N_MAIN-PICK+1,PICK)/C(N_MAIN,PICK);
+  $('#consBox').innerHTML = `<div class="kpis"><div class="kpi"><b class="num">${fmt(100*hasCons/N,1)}%</b><span>מההגרלות כללו לפחות זוג עוקב</span></div><div class="kpi"><b class="num">${fmt(100*theo,1)}%</b><span>צפוי באקראיות</span></div></div>
+    <p class="muted small" style="margin-bottom:0">רבים נמנעים ממספרים עוקבים כי "זה לא נראה אקראי", אבל ביותר ממחצית ההגרלות יש כאלה.</p>`;
+  const dl=['1–9','10–19','20–29','30–37'], dc=[9,10,10,8], dv=[0,0,0,0];
+  view.forEach(d=>d.nums.forEach(n=>dv[n<=9?0:n<=19?1:n<=29?2:3]++));
+  chart('decChart',dv.map((v,i)=>({label:dl[i],value:v/N,tip:`${dl[i]}: ${fmt(v/N,2)} בממוצע להגרלה · צפוי ${fmt(PICK*dc[i]/N_MAIN,2)}`})),{expected:dc.map(c=>PICK*c/N_MAIN),h:180});
+  const rep=Array(7).fill(0); for(let i=0;i<view.length-1;i++){ const s=new Set(view[i+1].nums); rep[view[i].nums.filter(n=>s.has(n)).length]++; }
+  const NN=Math.max(1,view.length-1);
+  chart('repChart',rep.slice(0,5).map((v,k)=>({label:k,value:v,cls:'b2',tip:`${k} חוזרים: ${v} (${fmt(100*v/NN,1)}%) · צפוי ${fmt(100*hyper(k,6),1)}%`})),{expected:[0,1,2,3,4].map(k=>NN*hyper(k,6)),h:180});
 }
 
-/* event: sliders change */
-freqRange.addEventListener('input', ()=> {
-  const f = Number(freqRange.value);
-  const r = Number(recRange.value);
-  freqVal.textContent = f + '%';
-  saveWeights(f, r);
-  renderAll();
-});
-recRange.addEventListener('input', ()=> {
-  const f = Number(freqRange.value);
-  const r = Number(recRange.value);
-  recVal.textContent = r + '%';
-  saveWeights(f, r);
-  renderAll();
-});
+/* ---------- backtest ---------- */
+const BT_NAMES = {hot:'חמים',cold:'קרים',due:'מגיע לו',mix:'המודל הקודם (70/30)',rnd:'אקראי'};
+function backtest(n, win){
+  const chron = cur.slice().reverse();                    // oldest first
+  const start = Math.max(win, chron.length-n); if(chron.length-start < 10) return null;
+  const S = {hot:[],cold:[],due:[],mix:[],rnd:[]};
+  for(let i=start;i<chron.length;i++){
+    const st=stats(chron.slice(i-win,i).reverse()), act=new Set(chron[i].nums);
+    const hits = pick => pick.filter(x=>act.has(x)).length;
+    const mf = Math.max(...st.freq)||1;
+    S.hot.push(hits(topBy(st.freq)));
+    S.cold.push(hits(topBy(st.freq.map(v=>-v))));
+    S.due.push(hits(topBy(st.last)));
+    S.mix.push(hits(topBy(st.freq.map((f,k)=> k? 0.7*f/mf + 0.3/(st.last[k]+1) : -1))));
+    S.rnd.push(hits(shuffle(NUMS.slice()).slice(0,PICK)));
+  }
+  const thirds = a => [0,1,2].map(t=>{ const q=a.slice(Math.floor(a.length*t/3),Math.floor(a.length*(t+1)/3)); return sumOf(q)/(q.length||1); });
+  return { n:chron.length-start, rows:Object.entries(S).map(([k,a])=>({k,name:BT_NAMES[k],mean:sumOf(a)/a.length,parts:thirds(a),ge3:a.filter(x=>x>=3).length,ge4:a.filter(x=>x>=4).length,n:a.length})) };
+}
+function runBacktest(){
+  const bt=backtest(Number($('#btN').value), Number($('#btW').value));
+  if(!bt){ $('#btTbl').innerHTML='<tbody><tr><td class="muted">אין מספיק הגרלות.</td></tr></tbody>'; $('#btNote').textContent=''; return; }
+  const exp=PICK*P_HIT, p3=[3,4,5,6].reduce((s,k)=>s+hyper(k,6),0), p4=[4,5,6].reduce((s,k)=>s+hyper(k,6),0);
+  const se=Math.sqrt(PICK*P_HIT*(1-P_HIT)*(N_MAIN-PICK)/(N_MAIN-1)/bt.n);   // sd of mean hits (hypergeometric)
+  $('#btTbl').innerHTML = `<thead><tr><th>שיטה</th><th>פגיעות בממוצע</th><th>מול אקראי</th><th>שליש ראשון · שני · שלישי</th><th>3+ פגיעות</th><th>4+ פגיעות</th></tr></thead><tbody>`+
+    bt.rows.map(r=>{ const zz=(r.mean-exp)/se; return `<tr><td><b>${r.name}</b></td><td class="num"><b>${fmt(r.mean,3)}</b></td><td><span class="pill ${Math.abs(zz)<2?'':zz>0?'good':'bad'}">${zz>=0?'+':''}${fmt(zz,1)}σ</span></td><td class="num">${r.parts.map(x=>`<span style="color:${x>exp+0.03?'var(--good)':x<exp-0.03?'var(--bad)':'inherit'}">${fmt(x,2)}</span>`).join(' · ')}</td><td class="num">${r.ge3} (${fmt(100*r.ge3/r.n,1)}%)</td><td class="num">${r.ge4}</td></tr>`; }).join('')+
+    `<tr><td class="muted">תאוריה</td><td class="num muted">${fmt(exp,3)}</td><td></td><td class="num muted">${fmt(exp,2)}</td><td class="num muted">${fmt(100*p3,1)}%</td><td class="num muted">${fmt(bt.n*p4,1)}</td></tr></tbody>`;
+  $('#btNote').innerHTML = `נבדקו ${fmt(bt.n)} הגרלות. סטייה קטנה מ־±2σ היא רעש. כשבודקים 5 שיטות בכמה טווחים וחלונות, חריגה של 2σ ויותר תופיע מדי פעם במקרה. שיטה שעובדת באמת הייתה מנצחת בעקביות בכל שליש של התקופה ובכל חלון, וזה לא קורה. נסו בעצמכם, למשל 300 הגרלות מול כל ההיסטוריה.`;
+}
 
-/* forecast button */
-forecastBtn.addEventListener('click', ()=>{
-  const k = Number(numGuessesSel.value);
-  const size = Number(guessSizeSel.value);
-  const res = forecastUI(size, k); // note signature: forecastUI(guessSize, guessCount) but purposely passing reversed? fix - use forecastUI(size, k)
-  // above line had reversed args; correct call:
-  const resCorrect = forecastUI(size, k);
-  if(resCorrect) renderForecastUI(resCorrect, size);
-});
+/* ---------- prediction engine ---------- */
+const SIG = [
+  {k:'long',   name:'שכיחות ארוכת טווח', tip:'כמה פעמים המספר עלה מאז 2011'},
+  {k:'recent', name:'שכיחות אחרונה',     tip:'הופעות ב־30 ההגרלות האחרונות'},
+  {k:'trend',  name:'מגמה',              tip:'הקצב ב־50 ההגרלות האחרונות לעומת הקצב הכללי'},
+  {k:'due',    name:'מגיע לו',           tip:'הפער הנוכחי ביחס לפער הממוצע של המספר'},
+  {k:'pair',   name:'זיקה לתוצאה האחרונה', tip:'כמה נוטה המספר לעלות יחד עם מספרי ההגרלה האחרונה'},
+  {k:'markov', name:'רצף (מרקוב)',       tip:'כמה פעמים עלה בהגרלה שבאה אחרי הגרלה עם מספרי ההגרלה האחרונה'},
+];
+const PRESETS = {
+  mix:    {name:'משולב',   w:{long:1,recent:1,trend:.6,due:.6,pair:.6,markov:.6}, note:'משקלל את כל ששת האותות. נקודת פתיחה טובה.'},
+  hot:    {name:'חמים',    w:{long:.6,recent:1.4,trend:.4,due:0,pair:0,markov:0}, note:'מעדיף מספרים שעלו הרבה, במיוחד לאחרונה.'},
+  trend:  {name:'מגמה',    w:{long:0,recent:.5,trend:1.5,due:0,pair:0,markov:0}, note:'מעדיף מספרים שהקצב שלהם עולה בתקופה האחרונה.'},
+  due:    {name:'מגיע לו', w:{long:.3,recent:0,trend:0,due:1.5,pair:0,markov:0}, note:'מעדיף מספרים שלא עלו זמן רב ביחס לרגיל.'},
+  pairs:  {name:'זוגות',   w:{long:.3,recent:0,trend:0,due:0,pair:1.5,markov:.5}, note:'מעדיף מספרים שנוטים לעלות יחד עם מספרי התוצאה האחרונה.'},
+  markov: {name:'מרקוב',   w:{long:.2,recent:0,trend:0,due:0,pair:.3,markov:1.5}, note:'מעדיף מספרים שהופיעו בעבר בהגרלה שאחרי מספרי התוצאה האחרונה.'},
+  custom: {name:'מותאם אישית', w:null, note:'המשקלים שכיוונתם בעצמכם.'},
+};
+const LS_PRESET='lotto_hub_preset', LS_W='lotto_hub_weights';
+let preset = PRESETS[ls.get(LS_PRESET)] ? ls.get(LS_PRESET) : 'mix';
+let customW = (()=>{ try{ return JSON.parse(ls.get(LS_W)) || {...PRESETS.mix.w}; }catch(e){ return {...PRESETS.mix.w}; } })();
+const weightsOf = p => p==='custom' ? customW : PRESETS[p].w;
+function zArr(a, from=1, to=N_MAIN){ let m=0,c=0; for(let i=from;i<=to;i++){ m+=a[i]; c++; } m/=c; let v=0; for(let i=from;i<=to;i++) v+=(a[i]-m)**2; const sd=Math.sqrt(v/c)||1; return a.map((x,i)=> i>=from&&i<=to ? (x-m)/sd : 0); }
+function signals(hist){                                  // hist: newest first, current format only
+  hist = hist.length>1200 ? hist.slice(0,1200) : hist;
+  const N=hist.length; if(N<30) return null;
+  const f=Array(N_MAIN+1).fill(0), fr=Array(N_MAIN+1).fill(0), fm=Array(N_MAIN+1).fill(0), last=Array(N_MAIN+1).fill(-1);
+  const sf=Array(N_STRONG+1).fill(0), sr=Array(N_STRONG+1).fill(0), sl=Array(N_STRONG+1).fill(-1);
+  hist.forEach((d,i)=>{ d.nums.forEach(n=>{ f[n]++; if(i<30) fr[n]++; if(i<50) fm[n]++; if(last[n]<0) last[n]=i; });
+    sf[d.strong]++; if(i<30) sr[d.strong]++; if(sl[d.strong]<0) sl[d.strong]=i; });
+  const D0=new Set(hist[0].nums), pair=Array(N_MAIN+1).fill(0), mk=Array(N_MAIN+1).fill(0);
+  for(let i=1;i<N;i++){ const d=hist[i]; let hit=0; for(const n of d.nums) if(D0.has(n)) hit++;
+    if(hit) for(const n of d.nums) pair[n]+=hit-(D0.has(n)?1:0);
+    if(hit) for(const n of hist[i-1].nums) mk[n]+=hit; }
+  const raw={long:[],recent:[],trend:[],due:[],pair:[],markov:[]};
+  for(let n=0;n<=N_MAIN;n++){
+    raw.long[n]=f[n]/N; raw.recent[n]=fr[n]/Math.min(30,N); raw.trend[n]=fm[n]/Math.min(50,N)-f[n]/N;
+    raw.due[n]=(last[n]<0?N:last[n])*f[n]/N; raw.pair[n]=pair[n]/(f[n]||1); raw.markov[n]=mk[n]/(f[n]||1); }
+  const z={}; SIG.forEach(s=>z[s.k]=zArr(raw[s.k]));
+  const sraw={long:sf.map(x=>x/N), recent:sr.map(x=>x/Math.min(30,N)), due:sl.map((x,i)=>(x<0?N:x)*sf[i]/N)};
+  const sz={long:zArr(sraw.long,1,N_STRONG), recent:zArr(sraw.recent,1,N_STRONG), due:zArr(sraw.due,1,N_STRONG)};
+  return {N, raw, z, sz, last, f};
+}
+function scoreWith(sig, w){
+  let tw=0; SIG.forEach(s=>tw+=Math.abs(w[s.k]||0)); tw=tw||1;
+  const sc=Array(N_MAIN+1).fill(-1e9); for(let n=1;n<=N_MAIN;n++){ let v=0; SIG.forEach(s=>v+=(w[s.k]||0)*sig.z[s.k][n]); sc[n]=v/tw; }
+  const sw={long:(w.long||0)+(w.pair||0)*.5+(w.markov||0)*.5, recent:(w.recent||0)+(w.trend||0), due:w.due||0};
+  const tws=sw.long+sw.recent+sw.due||1;
+  const ss=Array(N_STRONG+1).fill(-1e9); for(let s=1;s<=N_STRONG;s++) ss[s]=(sw.long*sig.sz.long[s]+sw.recent*sig.sz.recent[s]+sw.due*sig.sz.due[s])/tws;
+  const order=NUMS.slice().sort((a,b)=>sc[b]-sc[a]||a-b), sorder=[...Array(N_STRONG)].map((_,i)=>i+1).sort((a,b)=>ss[b]-ss[a]||a-b);
+  return {sc, ss, order, sorder, top:order.slice(0,PICK).sort((a,b)=>a-b), strong:sorder[0]};
+}
+const predictFrom = (hist, w) => { const sig=signals(hist); return sig ? {...scoreWith(sig,w), sig} : null; };
 
-/* init weights from storage and bind initial UI values */
-(function init(){
-  loadData();
-  // load weights and set UI values
-  const wraw = localStorage.getItem(WEIGHT_KEY);
-  if(wraw){
-    try{ const w=JSON.parse(wraw); setWeights(Number(w.freq)||70, Number(w.rec)||30, false); }
-    catch(e){ setWeights(70,30,false); }
-  } else { setWeights(70,30,false); }
-  // display initial numbers
+/* walk-forward evaluation, cached per dataset version */
+let evalCache = {ver:'', res:{}};
+const dataVer = () => cur.length+':'+(cur[0]?.date||'');
+function evalPreset(p, n=300){
+  const ver=dataVer(), key=p+':'+n+':'+(p==='custom'?JSON.stringify(customW):'');
+  if(evalCache.ver!==ver) evalCache={ver,res:{}};
+  if(evalCache.res[key]) return evalCache.res[key];
+  const w=weightsOf(p), rows=[];
+  for(let i=Math.min(n,cur.length-31)-1;i>=0;i--){
+    const pr=predictFrom(cur.slice(i+1), w); if(!pr) continue;
+    const d=cur[i], act=new Set(d.nums);
+    rows.push({d, top:pr.top, strong:pr.strong, hits:pr.top.filter(x=>act.has(x)).length, sHit:pr.strong===d.strong});
+  }
+  const m=rows.length||1;
+  const r={rows:rows.reverse(), mean:sumOf(rows.map(x=>x.hits))/m, ge3:rows.filter(x=>x.hits>=3).length, best:Math.max(0,...rows.map(x=>x.hits)), sRate:rows.filter(x=>x.sHit).length/m, n:rows.length};
+  evalCache.res[key]=r; return r;
+}
+
+/* next draw (Tuesday and Saturday evenings, Israel time) */
+function ilParts(d){ const p={}; new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(d).forEach(x=>p[x.type]=x.value); return p; }
+function ilOffsetMin(d){ try{ const v=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jerusalem',timeZoneName:'shortOffset'}).formatToParts(d).find(x=>x.type==='timeZoneName').value; const m=v.match(/GMT([+-]\d+)(?::(\d+))?/); return m? (+m[1])*60+(m[2]?Math.sign(+m[1])*+m[2]:0) : 180; }catch(e){ return 180; } }
+const DRAW_HOUR=22, DRAW_MIN=30;
+function drawInstant(y,m,d){ const g=new Date(Date.UTC(y,m-1,d,DRAW_HOUR,DRAW_MIN)); return new Date(g.getTime()-ilOffsetMin(g)*6e4); }
+function nextDrawInfo(){
+  const now=new Date(); let t=null, iso=null;
+  for(let k=0;k<9&&!t;k++){ const p=ilParts(new Date(now.getTime()+k*864e5)); if(p.weekday==='Tue'||p.weekday==='Sat'){ const dt=drawInstant(+p.year,+p.month,+p.day); if(dt>now){ t=dt; iso=`${p.year}-${p.month}-${p.day}`; } } }
+  const lastD=all.find(d=>d.id); let id=null, exact=false;
+  if(lastD && iso){ let c=0; const s=new Date(lastD.date+'T12:00:00Z'), e=new Date(iso+'T12:00:00Z');
+    for(let x=new Date(s.getTime()+864e5); x<=e; x=new Date(x.getTime()+864e5)){ const wd=x.getUTCDay(); if(wd===2||wd===6) c++; }
+    id=lastD.id+Math.max(1,c); exact=c<=1; }
+  return {t, iso, id, exact};
+}
+function tickCountdown(){
+  const nd=nextDrawInfo.cache; if(!nd||!nd.t) return;
+  let ms=nd.t-Date.now(); if(ms<0){ nextDrawInfo.cache=nextDrawInfo(); renderNext(); return; }
+  const d=Math.floor(ms/864e5); ms-=d*864e5; const h=Math.floor(ms/36e5); ms-=h*36e5; const m=Math.floor(ms/6e4); const s=Math.floor((ms-m*6e4)/1e3);
+  $('#countdown').textContent = (d?`${d} ${d===1?'יום':'ימים'} · `:'') + [h,m,s].map(x=>String(x).padStart(2,'0')).join(':');
+}
+setInterval(tickCountdown,1000);
+
+let PRED=null;
+function renderNext(){
+  const nd = nextDrawInfo.cache = nextDrawInfo();
+  $('#nextTitle').innerHTML = nd.id ? `הגרלה <span class="num">${nd.id}</span>${nd.exact?'':' <span class="pill" data-tip="המאגר לא מעודכן, המספר מחושב לפי לוח ההגרלות">משוער</span>'}` : 'ההגרלה הבאה';
+  $('#nextMeta').textContent = nd.iso ? `יום ${dow(nd.iso)}, ${dateHe(nd.iso)}, בערב (שעה משוערת ${DRAW_HOUR}:${String(DRAW_MIN).padStart(2,'0')})` : '';
+  tickCountdown();
+  $('#nextModel').textContent = 'מודל ' + PRESETS[preset].name;
+  $('#nextBalls').innerHTML = PRED ? PRED.top.map(n=>ball(n,'')).join('')+`<span class="plus">+</span>`+sball(PRED.strong,'') : '<span class="muted">אין מספיק נתונים</span>';
+}
+function renderPredict(){
+  PRED = cur.length>30 ? predictFrom(cur, weightsOf(preset)) : null;
+  renderNext();
+  $('#preset').innerHTML = Object.entries(PRESETS).map(([k,p])=>`<button data-k="${k}" class="${k===preset?'on':''}">${p.name}</button>`).join('');
+  $('#presetNote').textContent = PRESETS[preset].note;
+  const w=weightsOf(preset);
+  $('#weights').innerHTML = SIG.map(s=>`<div class="wrow"><label for="w_${s.k}" data-tip="${esc(s.tip)}">${s.name}</label><input type="range" id="w_${s.k}" data-k="${s.k}" min="0" max="2" step="0.1" value="${w[s.k]||0}"><b class="num">${fmt(w[s.k]||0,1)}</b></div>`).join('');
+  if(!PRED){ ['#predTop','#predStrong','#rankGrid','#pvTbl','#cmpTbl','#sysOut','#modelKpis'].forEach(id=>$(id).innerHTML=''); $('#predTopNote').textContent='צריך לפחות 30 הגרלות בפורמט הנוכחי.'; return; }
+  $('#predTop').innerHTML = PRED.top.map(n=>ball(n,'')).join('')+`<span class="plus">+</span>`+sball(PRED.strong,'');
+  const ranks=PRED.order; const why=PRED.top.map(n=>{ const best=SIG.slice().sort((a,b)=>(w[b.k]||0)*PRED.sig.z[b.k][n]-(w[a.k]||0)*PRED.sig.z[a.k][n])[0]; return `${n}: ${best.name}`; });
+  $('#predTopNote').innerHTML = `האות החזק ביותר לכל מספר: ${why.join(' · ')}`;
+  $('#predStrong').innerHTML = PRED.sorder.slice(0,3).map((s,i)=>`<span data-tip="מקום ${i+1}">${sball(s,'sm')}</span>`).join('');
+  const mn=PRED.sc[ranks[N_MAIN-1]], mx=PRED.sc[ranks[0]];
+  $('#rankGrid').innerHTML = ranks.map((n,i)=>{ const t=SIG.map(s=>`${s.name}: ${PRED.sig.z[s.k][n]>=0?'+':''}${fmt(PRED.sig.z[s.k][n],1)}`).join(' | ');
+    return `<div class="rk ${i<6?'top':''}" data-tip="${esc(t)}"><span class="pos">${i+1}</span>${ball(n,'xs')}<div class="bar"><i style="width:${Math.max(4,100*(PRED.sc[n]-mn)/((mx-mn)||1))}%"></i></div></div>`; }).join('');
+  renderSystem();
+  // heavy parts: walk-forward evaluation
+  $('#pvTbl').innerHTML='<tbody><tr><td class="muted">מחשב…</td></tr></tbody>';
+  clearTimeout(renderPredict._t); renderPredict._t=setTimeout(renderPredictEval,30);
+}
+function renderPredictEval(){
+  const ev=evalPreset(preset,300), exp=PICK*P_HIT;
+  $('#modelKpis').innerHTML = `<div class="kpi"><b class="num">${fmt(ev.mean,3)}</b><span>פגיעות בממוצע (300 אחרונות)</span></div><div class="kpi"><b class="num">${fmt(ev.ge3)}</b><span>פעמים עם 3 פגיעות ומעלה</span></div><div class="kpi"><b class="num">${ev.best}</b><span>שיא פגיעות בהגרלה</span></div><div class="kpi"><b class="num">${fmt(100*ev.sRate,1)}%</b><span>פגיעה במספר החזק (אקראי: 14.3%)</span></div>`;
+  $('#pvTbl').innerHTML = `<thead><tr><th>הגרלה</th><th>תחזית</th><th>תוצאה בפועל</th><th>פגיעות</th></tr></thead><tbody>`+
+    ev.rows.slice(0,20).map(r=>{ const act=new Set(r.d.nums); return `<tr><td class="num">${r.d.id||''}<div class="muted small">${dateHe(r.d.date)}</div></td>
+      <td><div class="balls start">${r.top.map(n=>ball(n,'xs'+(act.has(n)?' hit':''))).join('')}<span class="plus">+</span>${sball(r.strong,'xs'+(r.sHit?' hit':''))}</div></td>
+      <td><div class="balls start">${ballsHtml(r.d,'xs')}</div></td><td><span class="pill ${r.hits>=3?'gold':r.hits>=2?'good':''}">${r.hits}${r.sHit?' + חזק':''}</span></td></tr>`; }).join('')+'</tbody>';
+  if(PRED){ const lastRow=ev.rows[0]; if(lastRow) $('#lastVsPred').innerHTML = `המודל "${PRESETS[preset].name}" חזה להגרלה זו: <b class="num">${lastRow.top.join(' ')}</b> + ${lastRow.strong} · <b>${lastRow.hits}</b> פגיעות${lastRow.sHit?' + חזק':''}.`; }
+  const se=Math.sqrt(PICK*P_HIT*(1-P_HIT)*(N_MAIN-PICK)/(N_MAIN-1)/(ev.n||1));
+  $('#cmpTbl').innerHTML = `<thead><tr><th>מודל</th><th>פגיעות בממוצע</th><th>מול אקראי</th><th>3+ פגיעות</th><th>פגיעה בחזק</th></tr></thead><tbody>`+
+    Object.keys(PRESETS).map(k=>{ const e=evalPreset(k,300), zz=(e.mean-exp)/se; return `<tr${k===preset?' style="background:var(--surface-2)"':''}><td><b>${PRESETS[k].name}</b></td><td class="num">${fmt(e.mean,3)}</td><td><span class="pill ${Math.abs(zz)<2?'':zz>0?'good':'bad'}">${zz>=0?'+':''}${fmt(zz,1)}σ</span></td><td class="num">${e.ge3}</td><td class="num">${fmt(100*e.sRate,1)}%</td></tr>`; }).join('')+
+    `<tr><td class="muted">בחירה אקראית</td><td class="num muted">${fmt(exp,3)}</td><td></td><td class="num muted">${fmt(ev.n*[3,4,5,6].reduce((s,k)=>s+hyper(k,6),0),1)}</td><td class="num muted">14.3%</td></tr></tbody>`;
+}
+function renderSystem(){
+  if(!PRED) return;
+  const K=Number($('#sysK').value), nums=PRED.order.slice(0,K).sort((a,b)=>a-b);
+  const lines=C(K,PICK);
+  const hitAll=cur.slice(0,300).map(d=>d.nums.filter(n=>nums.includes(n)).length);
+  $('#sysOut').innerHTML = `<div class="balls start" style="margin:4px 0 10px">${nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(PRED.strong,'sm')}</div>
+    <div class="kpis"><div class="kpi"><b class="num">${fmt(lines)}</b><span>צירופים (שורות) בטופס</span></div><div class="kpi"><b class="num">1 : ${fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/lines))}</b><span>סיכוי לפרס ראשון</span></div></div>
+    <p class="muted small" style="margin-bottom:0">אם 6 המספרים הזוכים כולם בתוך הקבוצה, הטופס זוכה בוודאות. ב־300 ההגרלות האחרונות, קבוצה של ${K} מספרים מכילה בממוצע ${fmt(PICK*K/N_MAIN,2)} מספרים זוכים.</p>`;
+}
+function genPredTickets(){
+  if(!PRED){ toast('אין מספיק נתונים'); return; }
+  const count=+$('#pCount').value, temp=+$('#pSpread').value, bal=$('#pBalance').checked;
+  const w=Array(N_MAIN+1).fill(0); NUMS.forEach(n=>w[n]=Math.exp(temp*PRED.sc[n]));
+  const sw=Array(N_STRONG+1).fill(0); for(let s=1;s<=N_STRONG;s++) sw[s]=Math.exp(temp*.5*PRED.ss[s]);
+  const out=[];
+  for(let t=0;t<count;t++){
+    let a, tries=0, ok;
+    do{ a=weightedPick(w,PICK,t===0?PRED.top:[]); tries++;
+      const s=sumOf(a), odd=a.filter(n=>n%2).length; let run=1,mr=1; for(let i=1;i<6;i++){ run=a[i]-a[i-1]===1?run+1:1; mr=Math.max(mr,run); }
+      ok=(!bal||t===0||(s>=85&&s<=145&&odd>=2&&odd<=4&&mr<=2)) && out.every(o=>o.nums.filter(x=>a.includes(x)).length<=3);
+    } while(!ok && tries<4000);
+    out.push({nums:a, strong: t===0?PRED.strong:weightedPick(sw,1,[],N_STRONG)[0], score:sumOf(a.map(n=>PRED.sc[n]))/PICK});
+  }
+  genPredTickets.last=out;
+  $('#pTickets').innerHTML = out.map((t,i)=>`<div class="ticket"><div class="balls start">${t.nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(t.strong,'sm')}</div><div class="tags"><span class="pill">${i===0?'התחזית המובילה':'טופס '+(i+1)}</span><span class="pill">סכום ${sumOf(t.nums)}</span><span class="pill gold">ציון ${t.score>=0?'+':''}${fmt(t.score,2)}</span></div></div>`).join('');
+}
+
+/* ---------- generator ---------- */
+let genMode='smart';
+const MODE_NOTE={
+  smart:'אקראי לגמרי, עם סינון של צירופים פופולריים: לפחות 2 מספרים מעל 31 (מעבר לימי החודש), סכום בטווח המרכזי, איזון בין זוגיים לאי־זוגיים, בלי רצפים ותבניות, ובלי צירוף שכבר עלה בעבר.',
+  random:'בחירה אקראית אחידה עם מחולל מספרים קריפטוגרפי. סטטיסטית זהה לכל שיטה אחרת.',
+  hot:'הגרלה משוקללת לטובת המספרים שעלו הכי הרבה בטווח שנבחר.',
+  cold:'הגרלה משוקללת לטובת המספרים שעלו הכי מעט בטווח שנבחר.',
+  due:'הגרלה משוקללת לטובת המספרים שלא עלו הכי הרבה זמן.'
+};
+function weightedPick(weights, k, fixed, max=N_MAIN){
+  const chosen=new Set(fixed);
+  while(chosen.size<k){ let tot=0; for(let n=1;n<=max;n++) if(!chosen.has(n)) tot+=weights[n];
+    let r=rnd01()*tot, pick=0; for(let n=1;n<=max;n++){ if(chosen.has(n)) continue; pick=n; r-=weights[n]; if(r<=0) break; } chosen.add(pick); }
+  return [...chosen].sort((a,b)=>a-b);
+}
+function smartOk(a, drawn){
+  const s=sumOf(a), odd=a.filter(n=>n%2).length, high=a.filter(n=>n>31).length;
+  let run=1,maxRun=1; for(let i=1;i<6;i++){ run = a[i]-a[i-1]===1? run+1:1; maxRun=Math.max(maxRun,run); }
+  const diffs=a.slice(1).map((n,i)=>n-a[i]), arith=diffs.every(x=>x===diffs[0]);
+  const sameLast=new Set(a.map(n=>n%10)).size<=3, sameDec=Math.max(...[0,1,2,3].map(d=>a.filter(n=>Math.floor(n/10)===d).length))>=4;
+  return s>=90 && s<=140 && odd>=2 && odd<=4 && high>=2 && maxRun<=2 && !arith && !sameLast && !sameDec && !drawn.has(a.join('-'));
+}
+function genTickets(){
+  const count=Number($('#genCount').value);
+  const fixed=[...new Set(($('#genFixed').value.match(/\d+/g)||[]).map(Number).filter(n=>n>=1&&n<=N_MAIN))].slice(0,5);
+  const drawn=new Set(all.map(d=>d.nums.join('-'))), out=[], seen=new Set();
+  const w=Array(N_MAIN+1).fill(1); w[0]=0;
+  const fr=ST.freq.slice(1), mn=Math.min(...fr), mx=Math.max(...fr);
+  if(genMode==='hot'||genMode==='cold') NUMS.forEach(n=>{ const t=(ST.freq[n]-mn)/((mx-mn)||1); w[n]= genMode==='hot'? 0.2+3*t*t : 0.2+3*(1-t)*(1-t); });
+  if(genMode==='due') NUMS.forEach(n=>w[n]=0.3+ST.last[n]);
+  const sw=Array(N_STRONG+1).fill(1); sw[0]=0;
+  if(genMode==='hot') for(let s=1;s<=N_STRONG;s++) sw[s]=1+ST.sfreq[s];
+  for(let t=0;t<count;t++){
+    let a, tries=0;
+    do{ a=weightedPick(w,PICK,fixed); tries++; } while(tries<5000 && (seen.has(a.join('-')) || (genMode==='smart' && !smartOk(a,drawn))));
+    seen.add(a.join('-'));
+    out.push({nums:a,strong:weightedPick(sw,1,[],N_STRONG)[0],sum:sumOf(a),odd:a.filter(n=>n%2).length,fresh:!drawn.has(a.join('-'))});
+  }
+  genTickets.last=out;
+  $('#tickets').innerHTML = out.map((t,i)=>`<div class="ticket"><div class="balls start">${t.nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(t.strong,'sm')}</div>
+    <div class="tags"><span class="pill">טופס ${i+1}</span><span class="pill">סכום ${t.sum}</span><span class="pill">${t.odd} אי־זוגיים</span>${t.fresh?'<span class="pill good">לא עלה מעולם</span>':'<span class="pill bad">כבר עלה בעבר</span>'}</div></div>`).join('')
+    + `<div class="muted small">סיכוי לפרס ראשון עם ${count} ${count===1?'טופס':'טפסים'}: 1 ל־${fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/count))}.</div>`;
+}
+
+/* ---------- ticket check ---------- */
+const picked=new Set(); let pickedS=0;
+function buildPickers(){
+  $('#pickMain').innerHTML = NUMS.map(n=>`<button type="button" data-n="${n}">${n}</button>`).join('');
+  $('#pickStrong').innerHTML = [...Array(N_STRONG)].map((_,i)=>`<button type="button" data-s="${i+1}">${i+1}</button>`).join('');
+}
+function syncPickers(){ $$('#pickMain button').forEach(b=>b.classList.toggle('on',picked.has(+b.dataset.n))); $$('#pickStrong button').forEach(b=>b.classList.toggle('on',+b.dataset.s===pickedS)); }
+const PRIZE = (h,s) => h===6?(s?'6 + חזק (פרס ראשון)':'6 (פרס שני)'):h===5?(s?'5 + חזק':'5'):h===4?(s?'4 + חזק':'4'):h===3?(s?'3 + חזק':'3'):null;
+const PRIZE_ORDER = ['6 + חזק (פרס ראשון)','6 (פרס שני)','5 + חזק','5','4 + חזק','4','3 + חזק','3'];
+function renderCheck(){
+  if(picked.size<6||!pickedS){ $('#checkOut').innerHTML=`<div class="muted">נבחרו ${picked.size} מתוך 6 מספרים${pickedS?' + מספר חזק':''}.</div>`; return; }
+  const tiers=new Map(), best=[];
+  cur.forEach(d=>{ const h=d.nums.filter(n=>picked.has(n)).length, s=d.strong===pickedS, p=PRIZE(h,s); if(p) tiers.set(p,(tiers.get(p)||0)+1); if(h>=4||(h===3&&s)) best.push({d,h,s}); });
+  best.sort((a,b)=>b.h-a.h||b.s-a.s||b.d.date.localeCompare(a.d.date));
+  const combo=[...picked].sort((a,b)=>a-b).join('-'), ever=all.some(d=>d.nums.join('-')===combo);
+  const th = k => cur.length*hyper(k,6);
+  $('#checkOut').innerHTML = `<h3>תוצאות על פני ${fmt(cur.length)} הגרלות</h3>
+    <table class="tbl"><thead><tr><th>דרגה</th><th>פעמים</th></tr></thead><tbody>${PRIZE_ORDER.filter(o=>tiers.has(o)).map(o=>`<tr><td>${o}</td><td class="num"><b>${tiers.get(o)}</b></td></tr>`).join('')||'<tr><td colspan="2" class="muted">אין אף פגיעה של 3 ומעלה.</td></tr>'}</tbody></table>
+    <p class="muted small">לטופס אקראי צפויות בערך ${fmt(th(3),0)} פגיעות של 3, ‏${fmt(th(4),1)} של 4 ו־${fmt(th(5),2)} של 5 בתקופה הזו. ${ever?'<b>הצירוף הזה כבר עלה בעבר!</b>':'הצירוף הזה מעולם לא עלה במלואו.'}</p>
+    ${best.length?`<div class="eyebrow" style="margin:10px 0 6px">הפגיעות הטובות ביותר</div><div class="scroll" style="max-height:280px"><table class="tbl"><tbody>${best.slice(0,30).map(b=>`<tr><td class="num">${dateHe(b.d.date)}</td><td><div class="balls start">${ballsHtml(b.d,'xs',picked,pickedS)}</div></td><td><span class="pill ${b.h>=5?'gold':''}">${b.h}${b.s?' + חזק':''}</span></td></tr>`).join('')}</tbody></table></div>`:''}`;
+}
+
+/* ---------- data page ---------- */
+function renderData(){
+  const q=($('#search').value||'').trim();
+  let rows=all;
+  if(q){ const nums=(q.match(/\d+/g)||[]).map(Number);
+    rows=all.filter(d=> (d.id&&String(d.id)===q) || dateHe(d.date).includes(q) || d.date.includes(q) || (nums.length&&nums.length<=6&&nums.every(n=>d.nums.includes(n)))); }
+  const userKeys=new Set(userDraws.map(keyOf)), baseKeys=new Set(baseDraws.map(keyOf));
+  $('#allTbl').innerHTML=`<thead><tr><th>הגרלה</th><th>תאריך</th><th>תוצאה</th><th></th></tr></thead><tbody>`+
+    rows.slice(0,400).map(d=>`<tr><td class="num">${d.id||'—'}</td><td class="num">${dateHe(d.date)}</td><td><div class="balls start">${ballsHtml(d,'xs')}</div></td><td>${userKeys.has(keyOf(d))&&!baseKeys.has(keyOf(d))?`<button class="btn danger" data-del="${esc(keyOf(d))}" style="padding:3px 8px;font-size:12px">מחק</button>`:d.date<FORMAT_START?'<span class="pill">פורמט ישן</span>':''}</td></tr>`).join('')+
+    (rows.length>400?`<tr><td colspan="4" class="muted small">מוצגות 400 מתוך ${fmt(rows.length)}. חפשו כדי לצמצם.</td></tr>`:'')+
+    (!rows.length?'<tr><td colspan="4" class="muted">לא נמצאו הגרלות.</td></tr>':'')+'</tbody>';
+  $('#localNote').textContent = `במאגר ${fmt(all.length)} הגרלות: ${fmt(baseDraws.length)} מקובץ האתר ו־${fmt(all.length-baseDraws.length)} שנוספו בדפדפן הזה. ייצוא CSV יוצר קובץ מעודכן שאפשר להעלות לאתר במקום lotto.csv.`;
+  const last=all.find(d=>d.id); if(last && !$('#addId').value) $('#addId').value=last.id+1;
+}
+function importDraws(list, label){
+  const known=new Set(all.map(keyOf)), fresh=list.filter(d=>!known.has(keyOf(d)));
+  const seen=new Set(); userDraws = userDraws.concat(fresh).filter(d=>{ const k=keyOf(d); if(seen.has(k)) return false; seen.add(k); return true; });
+  saveUser(); renderAll();
+  $('#importMsg').innerHTML=''; toast(`${label}: נקראו ${fmt(list.length)} הגרלות, ${fmt(fresh.length)} חדשות נוספו`);
+}
+async function handleFile(f){
+  if(!f) return;
+  try{
+    const buf=await f.arrayBuffer(); let draws;
+    if(/\.xlsx?$/i.test(f.name) || new Uint8Array(buf.slice(0,2)).join()==='80,75') draws=await parseXlsx(buf);
+    else { const text=decodeBuffer(buf); draws = /\.json$/i.test(f.name)||/^\s*\[/.test(text) ? parseJson(text) : parseCsv(text);
+      if(!draws.length){ showImportError(text); return; } }
+    if(!draws.length){ toast('לא נמצאו הגרלות תקינות בקובץ'); return; }
+    importDraws(draws, f.name);
+  }catch(e){ console.error(e); toast('שגיאה בקריאת הקובץ: '+e.message); }
+}
+function showImportError(text){
+  const lines=text.split(/\r?\n/).filter(l=>l.trim()).slice(0,3).map(l=>esc(l.slice(0,120)));
+  $('#importMsg').innerHTML=`<div class="banner"><div>⚠️</div><div class="small"><b>לא זוהו הגרלות בקובץ.</b> כל שורה צריכה לכלול תאריך, 6 מספרים ומספר חזק. כך נראות השורות הראשונות בקובץ:<pre style="white-space:pre-wrap;direction:ltr;text-align:left;margin:6px 0 0">${lines.join('\n')||'(הקובץ ריק)'}</pre></div></div>`;
+  toast('לא נמצאו הגרלות תקינות בקובץ');
+}
+function download(content,type,name){ const b=new Blob([content],{type}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
+
+/* ---------- events ---------- */
+function go(p, scroll=true){
+  $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
+  $$('section.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));
+  if(p==='backtest') runBacktest();
+  redrawCharts();
+  history.replaceState(null,'','#'+p);
+  const hero=$('#hero'), y=hero.offsetTop+hero.offsetHeight-64;
+  if(scroll && scrollY>y) scrollTo({top:y,behavior:'smooth'});
+}
+$('#tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) go(b.dataset.p); });
+document.addEventListener('click',e=>{
+  const g=e.target.closest('[data-goto]'); if(g){ e.preventDefault(); go(g.dataset.goto); scrollTo({top:$('#hero').offsetTop+$('#hero').offsetHeight-64,behavior:'smooth'}); }
+  const del=e.target.closest('[data-del]'); if(del){ userDraws=userDraws.filter(d=>keyOf(d)!==del.dataset.del); saveUser(); renderAll(); toast('ההגרלה נמחקה'); }
+});
+$('#rangeSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; range=b.dataset.r; ls.set(LS_RANGE,range); $$('#rangeSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderAll(); });
+if(!['all','500','200','100','50'].includes(range)) range='all';
+$$('#rangeSeg button').forEach(x=>x.classList.toggle('on',x.dataset.r===range));
+$('#pairFocus').addEventListener('change',renderPairs);
+$('#btRun').addEventListener('click',runBacktest);
+$('#genMode').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; genMode=b.dataset.m; $$('#genMode button').forEach(x=>x.classList.toggle('on',x===b)); $('#genModeNote').textContent=MODE_NOTE[genMode]; });
+$('#genModeNote').textContent=MODE_NOTE.smart;
+$('#genBtn').addEventListener('click',genTickets);
+$('#genCopy').addEventListener('click',()=>{ const t=genTickets.last; if(!t){ toast('צרו טפסים קודם'); return; }
+  const txt=t.map((x,i)=>`${i+1}) ${x.nums.join(' ')} | חזק ${x.strong}`).join('\n');
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('הטפסים הועתקו'),()=>toast('ההעתקה נכשלה')); });
+$('#pickMain').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const n=+b.dataset.n; if(picked.has(n)) picked.delete(n); else if(picked.size<6) picked.add(n); else { toast('אפשר לבחור 6 מספרים בלבד'); return; } syncPickers(); renderCheck(); });
+$('#pickStrong').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; pickedS=+b.dataset.s; syncPickers(); renderCheck(); });
+$('#pickRand').addEventListener('click',()=>{ picked.clear(); shuffle(NUMS.slice()).slice(0,6).forEach(n=>picked.add(n)); pickedS=1+rnd(N_STRONG); syncPickers(); renderCheck(); });
+$('#pickClear').addEventListener('click',()=>{ picked.clear(); pickedS=0; syncPickers(); renderCheck(); });
+const drop=$('#drop');
+['dragenter','dragover'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); drop.classList.add('over'); }));
+['dragleave','drop'].forEach(ev=>document.addEventListener(ev,e=>{ e.preventDefault(); if(ev==='drop'||!e.relatedTarget) drop.classList.remove('over'); }));
+document.addEventListener('drop',e=>{ const f=e.dataTransfer&&e.dataTransfer.files[0]; if(f) handleFile(f); });
+$('#fileIn').addEventListener('change',e=>{ handleFile(e.target.files[0]); e.target.value=''; });
+$('#search').addEventListener('input',renderData);
+$('#pasteBtn').addEventListener('click',()=>{ const t=$('#pasteBox').value; const d=parseCsv(t.replace(/\t/g,',')); if(!d.length){ showImportError(t); return; } $('#importMsg').innerHTML=''; importDraws(d,'הדבקה'); $('#pasteBox').value=''; });
+$('#addNums').innerHTML=[1,2,3,4,5,6].map(i=>`<input type="number" min="1" max="37" required aria-label="מספר ${i}" class="addN">`).join('');
+$('#addDate').valueAsDate=new Date();
+$('#addForm').addEventListener('submit',e=>{ e.preventDefault();
+  const nums=[...$$('.addN')].map(i=>Number(i.value));
+  if(nums.some(n=>!Number.isInteger(n)||n<1||n>N_MAIN)||new Set(nums).size!==6){ toast('צריך 6 מספרים שונים בין 1 ל־37'); return; }
+  const s=Number($('#addStrong').value); if(!(Number.isInteger(s)&&s>=1&&s<=N_STRONG)){ toast('המספר החזק הוא בין 1 ל־7'); return; }
+  const d=mkDraw($('#addId').value,$('#addDate').value,nums,s); if(!d||!d.id){ toast('נתונים לא תקינים'); return; }
+  if(all.some(x=>keyOf(x)===keyOf(d))){ toast(`הגרלה ${d.id} כבר קיימת במאגר`); return; }
+  userDraws.push(d); saveUser(); $$('.addN').forEach(i=>i.value=''); $('#addStrong').value=''; $('#addId').value=''; renderAll(); toast(`הגרלה ${d.id} נוספה`); });
+$('#expCsv').addEventListener('click',()=>{ if(!all.length){ toast('אין נתונים'); return; }
+  const csv='﻿הגרלה,תאריך,1,2,3,4,5,6,המספר החזק/נוסף,מספר_זוכים_לוטו,מספר_זוכים_דאבל_לוטו,\n'+all.map(d=>[d.id||'',dateHe(d.date),...d.nums,d.strong,d.w6,d.w6d,''].join(',')).join('\n')+'\n';
+  download(csv,'text/csv;charset=utf-8','lotto.csv'); });
+$('#expJson').addEventListener('click',()=>{ if(!all.length){ toast('אין נתונים'); return; } download(JSON.stringify(all,null,1),'application/json','lotto.json'); });
+$('#resetLocal').addEventListener('click',()=>{ if(!userDraws.length){ toast('אין תוספות מקומיות'); return; } if(!confirm(`למחוק ${userDraws.length} הגרלות שנוספו בדפדפן הזה?`)) return; userDraws=[]; saveUser(); renderAll(); toast('התוספות המקומיות נמחקו'); });
+function applyTheme(t){ if(t) document.documentElement.dataset.theme=t; else delete document.documentElement.dataset.theme; }
+applyTheme(ls.get(LS_THEME));
+$('#themeBtn').addEventListener('click',()=>{ const t=document.documentElement.dataset.theme, dark = t ? t==='dark' : matchMedia('(prefers-color-scheme: dark)').matches; const nt=dark?'light':'dark'; ls.set(LS_THEME,nt); applyTheme(nt); });
+
+
+$('#preset').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; preset=b.dataset.k; if(preset==='custom'&&!customW) customW={...PRESETS.mix.w}; ls.set(LS_PRESET,preset); renderPredict(); });
+$('#weights').addEventListener('input',e=>{ const r=e.target.closest('input[type=range]'); if(!r) return;
+  if(preset!=='custom'){ customW={...weightsOf(preset)}; preset='custom'; ls.set(LS_PRESET,preset); }
+  customW[r.dataset.k]=+r.value; ls.set(LS_W,JSON.stringify(customW)); r.nextElementSibling.textContent=fmt(+r.value,1);
+  $$('#preset button').forEach(x=>x.classList.toggle('on',x.dataset.k==='custom')); $('#presetNote').textContent=PRESETS.custom.note;
+  clearTimeout(window._wt); window._wt=setTimeout(()=>{ const open=$('#weightsBox').open; renderPredict(); $('#weightsBox').open=open; },250); });
+$('#sysK').addEventListener('change',renderSystem);
+$('#pGen').addEventListener('click',genPredTickets);
+$('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ toast('צרו טפסים קודם'); return; }
+  const txt=t.map((x,i)=>`${i+1}) ${x.nums.join(' ')} | חזק ${x.strong}`).join('\n');
+  (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('הטפסים הועתקו'),()=>toast('ההעתקה נכשלה')); });
+
+/* ---------- boot ---------- */
+(async function boot(){
+  buildPickers(); loadUser();
+  try{
+    const r = await fetch('lotto.csv',{cache:'no-cache'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    baseDraws = parseCsv(decodeBuffer(await r.arrayBuffer()));
+  }catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
+  const h=location.hash.slice(1); if(h && document.getElementById('p-'+h)) go(h,false);
 })();
-
-/* small correction: earlier forecastUI called with reversed args; we expose correct function too */
-function forecastUI(guessSize, guessCount){
-  // wrapper to original forecastUI implementation above (already defined earlier)
-  return (function inner(size, count){ return (function(){ 
-    // reuse compute based on UI weights
-    if(dataset.length===0) { alert('אין נתונים — הוסף או טען CSV'); return null; }
-    const { scores, wf, wr } = computeScoresFromUI();
-    const extraScores = computeExtraScoresFromUI();
-    let total=0; for(let i=1;i<=37;i++) total+=scores[i];
-    const prob = Array(38).fill(0); if(total>0) for(let i=1;i<=37;i++) prob[i]=scores[i]/total; else for(let i=1;i<=37;i++) prob[i]=1/37;
-    let totalE=0; for(let i=1;i<=7;i++) totalE+=extraScores[i];
-    const probExtra = Array(8).fill(0); if(totalE>0) for(let i=1;i<=7;i++) probExtra[i]=extraScores[i]/totalE; else for(let i=1;i<=7;i++) probExtra[i]=1/7;
-    const order=[]; for(let i=1;i<=37;i++) order.push({num:i,score:scores[i],prob:prob[i]}); order.sort((a,b)=>b.score-a.score);
-    const guesses=[]; for(let g=0; g<count; g++){
-      let start=g; const selected=[]; let idx=start;
-      while(selected.length < size){ if(idx>=order.length) idx=0; const c=order[idx].num; if(!selected.includes(c)) selected.push(c); idx++; }
-      selected.sort((a,b)=>a-b);
-      const extrasOrder=[]; for(let i=1;i<=7;i++) extrasOrder.push({num:i,score:extraScores[i],prob:probExtra[i]}); extrasOrder.sort((a,b)=>b.score-a.score);
-      const extraPick = extrasOrder[g % extrasOrder.length].num;
-      guesses.push({ nums:selected, extra:extraPick });
-    }
-    const recommended = order.slice(0,size).map(x=>x.num).sort((a,b)=>a-b);
-    const recommendedExtra = computeExtraScoresFromUI().map((v,i)=>({num:i,score:v})).slice(1).sort((a,b)=>b.score-a.score)[0].num;
-    const P_subset = size>=6 ? comb(size,6) / comb(37,6) : 0;
-    let pS=0; recommended.forEach(n=> pS+=prob[n]);
-    const modelApprox = Math.pow(pS, 6);
-    let jointProd=1; recommended.forEach(n=> jointProd *= prob[n] || (1/37));
-    const P_extra = probExtra[recommendedExtra] || (1/7);
-    const P_combined_model = modelApprox * P_extra;
-    const P_combined_combin = P_subset * P_extra;
-    return { guesses, recommended:{nums:recommended, extra:recommendedExtra}, perNumberProb:prob, perExtraProb:probExtra, P_subset, modelApprox, jointProd, P_extra, P_combined_model, P_combined_combin, pS, weights:{wf,wr} };
-  })(); })(guessSize, guessCount);
-}
-
-/* convenience download function */
-function download(content,type,filename){ const blob=new Blob([content],{type}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=filename; a.click(); URL.revokeObjectURL(url); }
-
 </script>
-
-<!-- Bootstrap JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
