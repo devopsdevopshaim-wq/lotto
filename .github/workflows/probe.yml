@@ -1,0 +1,35 @@
+name: probe
+on:
+  push:
+    branches: [claude/bold-noether-3cs4km]
+    paths: [.github/workflows/probe.yml]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir -p probe
+          UA="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126 Safari/537.36"
+          i=0
+          for u in \
+            "https://www.paisresults.co.il/" \
+            "https://lottosheli.co.il/results/lotto" \
+            "https://lottopro.co.il/lotto/results" \
+            "https://lottoplus.co.il/lotto-result/" \
+            "https://www.shlihot.co.il/HE/results_lotto.aspx" \
+            "https://www.myloto.co.il/%D7%9C%D7%95%D7%98%D7%95" \
+            "https://www.playsmart.co.il/%D7%9C%D7%95%D7%98%D7%95/%D7%AA%D7%95%D7%A6%D7%90%D7%95%D7%AA-%D7%9C%D7%95%D7%98%D7%95/" \
+            "https://www.pais.co.il/lotto/archive.aspx" \
+            "https://www.pais.co.il/Lotto/lotto_resultsDownload.aspx" ; do
+            i=$((i+1))
+            code=$(curl -sSL -m 40 -A "$UA" -H "Accept-Language: he-IL,he;q=0.9" -o probe/$i.html -w "%{http_code}" "$u" 2>probe/$i.err || true)
+            echo "$i $code $(wc -c < probe/$i.html 2>/dev/null) $u" >> probe/index.txt
+          done
+          cat probe/index.txt
+      - run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git add probe && git commit -m "probe results" && git push
