@@ -1,10 +1,11 @@
 name: Update lotto results
 
-# Lotto draws are on Tuesday and Saturday nights (Israel time).
+# Lotto draws are usually on Tuesday and Saturday nights (Israel time); run the
+# night after and again the next morning in case the sources were late.
 on:
   schedule:
-    - cron: '17 21 * * 2,6'
-    - cron: '17 6 * * 0,3'
+    - cron: '30 21 * * 2,6'
+    - cron: '0 5 * * 0,3'
   workflow_dispatch:
 
 permissions:
@@ -15,30 +16,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Download results from Pais
-        id: dl
-        run: |
-          set -u
-          url="https://www.pais.co.il/Lotto/lotto_resultsDownload.aspx"
-          if ! curl -fsSL -m 60 -A "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/124 Safari/537.36" \
-               -H "Referer: https://www.pais.co.il/lotto/archive.aspx" -o new.csv "$url"; then
-            echo "::warning::Download failed (Pais may block this runner). Upload lotto.csv manually."
-            exit 0
-          fi
-          # Valid file: >1000 rows shaped like "draw,dd/mm/yyyy,n1..n6,strong"
-          rows=$(grep -cE '^[0-9]+,[0-9]{2}/[0-9]{2}/[0-9]{4},([0-9]{1,2},){7}' new.csv || true)
-          if [ "${rows:-0}" -lt 1000 ]; then
-            echo "::warning::Downloaded file is not a results CSV ($rows valid rows). Skipping."
-            exit 0
-          fi
-          echo "ok=1" >> "$GITHUB_OUTPUT"
-
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Fetch new draws
+        run: python scripts/update_results.py
       - name: Commit if changed
-        if: steps.dl.outputs.ok == '1'
         run: |
-          if cmp -s new.csv lotto.csv; then echo "No new draws."; exit 0; fi
-          mv new.csv lotto.csv
+          if git diff --quiet lotto.csv; then echo "No changes."; exit 0; fi
           git config user.name "github-actions[bot]"
           git config user.email "41898+github-actions[bot]@users.noreply.github.com"
           git add lotto.csv

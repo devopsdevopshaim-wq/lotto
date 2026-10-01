@@ -414,7 +414,7 @@ details summary{cursor:pointer;font-weight:700}
 
   <!-- DATA -->
   <section class="page" id="p-data">
-    <div class="sec-head"><div><h2>ניהול נתונים</h2><p>המאגר נטען אוטומטית מהקובץ <span class="num">lotto.csv</span> שבאתר. כדי לעדכן, הורידו את קובץ התוצאות מ<a href="https://www.pais.co.il/lotto/archive.aspx" target="_blank" rel="noopener">ארכיון הלוטו של מפעל הפיס</a> וגררו אותו לכאן. ההגרלות מתמזגות לפי מספר ההגרלה, בלי כפילויות.</p></div></div>
+    <div class="sec-head"><div><h2>ניהול נתונים</h2><p>המאגר מתעדכן אוטומטית אחרי כל הגרלה. אין צורך להעלות קבצים. אם בכל זאת רוצים להוסיף נתונים, אפשר לגרור כאן קובץ, להדביק שורות או להוסיף הגרלה ידנית. ההגרלות מתמזגות לפי מספר ההגרלה, בלי כפילויות.</p></div></div>
     <div class="grid2">
       <div class="stack">
         <label class="drop" id="drop">
@@ -516,7 +516,8 @@ function mkDraw(id,date,nums,strong,w6,w6d){
   strong = Number(strong); if(!Number.isInteger(strong)) return null;
   const iso = toISO(date); if(!iso) return null;
   id = Number(id); if(!Number.isInteger(id)||id<=0) id = null;
-  return { id, date:iso, nums:nums.sort((a,b)=>a-b), strong, w6:Number(w6)||0, w6d:Number(w6d)||0 };
+  const cnt = v => (v===undefined||v===null||String(v).trim()==='') ? null : (Number(v)||0);   // winner counts can be unknown
+  return { id, date:iso, nums:nums.sort((a,b)=>a-b), strong, w6:cnt(w6), w6d:cnt(w6d) };
 }
 /* Generic row parser: finds the date cell, takes the integer just before it as the draw number
    and the integers after it as 6 numbers + strong (+ winner counts). Handles the Pais export,
@@ -631,16 +632,16 @@ function renderHero(){
   const d = all[0];
   if(!d){ $('#lastTitle').textContent='אין נתונים'; $('#lastBalls').innerHTML=''; $('#freshBanner').innerHTML=`<div class="banner"><div>⚠️</div><div class="small"><b>המאגר ריק.</b> גררו קובץ תוצאות לעמוד.</div></div>`; return; }
   $('#lastTitle').innerHTML = d.id ? `הגרלה <span class="num">${d.id}</span>` : 'הגרלה אחרונה';
-  $('#lastMeta').textContent = `יום ${dow(d.date)}, ${dateHe(d.date)}` + (d.w6? ` · ${d.w6} זוכים בפרס הראשון` : ' · ללא זוכה בפרס הראשון');
+  $('#lastMeta').textContent = `יום ${dow(d.date)}, ${dateHe(d.date)}` + (d.w6===null? '' : d.w6? ` · ${d.w6} זוכים בפרס הראשון` : ' · ללא זוכה בפרס הראשון');
   $('#lastBalls').innerHTML = ballsHtml(d,'');
   const days = Math.floor((Date.now() - new Date(d.date+'T23:00:00'))/864e5);
   $('#freshBanner').innerHTML = days>5
-    ? `<div class="banner"><div>⚠️</div><div><b>המאגר לא מעודכן: ההגרלה האחרונה בו הייתה לפני ${fmt(days)} ימים.</b><div class="small">הורידו את קובץ התוצאות מ<a href="https://www.pais.co.il/lotto/archive.aspx" target="_blank" rel="noopener">ארכיון הלוטו של מפעל הפיס</a> וגררו אותו לכל מקום בעמוד, או הוסיפו הגרלות ידנית ב<a href="#" data-goto="data">עמוד הנתונים</a>.</div></div></div>`
-    : `<div class="banner ok"><div>✓</div><div class="small"><b>המאגר מעודכן.</b> הגרלות הלוטו נערכות בימי שלישי ושבת.</div></div>`;
+    ? `<div class="banner"><div>⚠️</div><div><b>ההגרלה האחרונה במאגר הייתה לפני ${fmt(days)} ימים.</b><div class="small">התוצאות מתעדכנות אוטומטית בלילה שאחרי כל הגרלה. אם חסרה הגרלה, אפשר להוסיף אותה ב<a href="#" data-goto="data">עמוד הנתונים</a>.</div></div></div>`
+    : `<div class="banner ok"><div>✓</div><div class="small"><b>המאגר מעודכן.</b> התוצאות מתעדכנות אוטומטית אחרי כל הגרלה.</div></div>`;
   $('#kDraws').textContent = fmt(view.length);
   $('#kSpan').textContent = view.length ? `${view[view.length-1].date.slice(0,4)}–${view[0].date.slice(0,4)}` : '—';
-  const jw = view.filter(x=>x.w6>0).length;
-  $('#kJack').textContent = view.length ? `${fmt(jw)} (${fmt(100*jw/view.length,1)}%)` : '—';
+  const known = view.filter(x=>x.w6!==null), jw = known.filter(x=>x.w6>0).length;
+  $('#kJack').textContent = known.length ? `${fmt(jw)} (${fmt(100*jw/known.length,1)}%)` : '—';
 }
 function renderOverview(){
   const o = byFreq(ST);
@@ -655,7 +656,7 @@ function renderOverview(){
   const bt = backtest(99999, 100);
   const se = bt && Math.sqrt(PICK*P_HIT*(1-P_HIT)*(N_MAIN-PICK)/(N_MAIN-1)/bt.n), maxZ = bt ? Math.max(...bt.rows.map(r=>Math.abs(r.mean-PICK*P_HIT)/se)) : 0;
   $('#ovBack').innerHTML = bt ? `בכל ${fmt(bt.n)} ההגרלות מאז 2011, כל שיטה בחרה 6 מספרים לפי 100 ההגרלות שקדמו. ממוצע הפגיעות לטופס: ${bt.rows.map(r=>`${r.name} <b class="num">${fmt(r.mean,2)}</b>`).join(' · ')}. באקראיות צפוי <b class="num">0.97</b>. ${maxZ<2?'אף שיטה לא עדיפה באופן מובהק.':'יש סטייה חריגה, אבל היא לא עקבית בין התקופות.'} <a href="#" data-goto="backtest">לפירוט המלא</a>` : 'אין מספיק הגרלות.';
-  const rows = cur.slice(0,10).map(d=>`<tr><td class="num">${d.id||'—'}</td><td class="num">${dateHe(d.date)}</td><td><div class="balls start">${ballsHtml(d,'xs')}</div></td><td class="num hide-m">${sumOf(d.nums)}</td><td class="hide-m">${d.w6?`<span class="pill gold">${d.w6} זוכים</span>`:'<span class="muted small">אין זוכה</span>'}</td></tr>`).join('');
+  const rows = cur.slice(0,10).map(d=>`<tr><td class="num">${d.id||'—'}</td><td class="num">${dateHe(d.date)}</td><td><div class="balls start">${ballsHtml(d,'xs')}</div></td><td class="num hide-m">${sumOf(d.nums)}</td><td class="hide-m">${d.w6===null?'<span class="muted small">—</span>':d.w6?`<span class="pill gold">${d.w6} זוכים</span>`:'<span class="muted small">אין זוכה</span>'}</td></tr>`).join('');
   $('#ovRecent').innerHTML = `<thead><tr><th>הגרלה</th><th>תאריך</th><th>תוצאה</th><th class="hide-m">סכום</th><th class="hide-m">פרס ראשון</th></tr></thead><tbody>${rows}</tbody>`;
 }
 function zColor(z){ const t=Math.max(-1,Math.min(1,z/3)); return `color-mix(in srgb, ${t>=0?'var(--accent)':'var(--cool)'} ${Math.round(Math.abs(t)*65)}%, var(--surface-2))`; }
@@ -1065,7 +1066,7 @@ $('#addForm').addEventListener('submit',e=>{ e.preventDefault();
   if(all.some(x=>keyOf(x)===keyOf(d))){ toast(`הגרלה ${d.id} כבר קיימת במאגר`); return; }
   userDraws.push(d); saveUser(); $$('.addN').forEach(i=>i.value=''); $('#addStrong').value=''; $('#addId').value=''; renderAll(); toast(`הגרלה ${d.id} נוספה`); });
 $('#expCsv').addEventListener('click',()=>{ if(!all.length){ toast('אין נתונים'); return; }
-  const csv='﻿הגרלה,תאריך,1,2,3,4,5,6,המספר החזק/נוסף,מספר_זוכים_לוטו,מספר_זוכים_דאבל_לוטו,\n'+all.map(d=>[d.id||'',dateHe(d.date),...d.nums,d.strong,d.w6,d.w6d,''].join(',')).join('\n')+'\n';
+  const csv='﻿הגרלה,תאריך,1,2,3,4,5,6,המספר החזק/נוסף,מספר_זוכים_לוטו,מספר_זוכים_דאבל_לוטו,\n'+all.map(d=>[d.id||'',dateHe(d.date),...d.nums,d.strong,d.w6??'',d.w6d??'',''].join(',')).join('\n')+'\n';
   download(csv,'text/csv;charset=utf-8','lotto.csv'); });
 $('#expJson').addEventListener('click',()=>{ if(!all.length){ toast('אין נתונים'); return; } download(JSON.stringify(all,null,1),'application/json','lotto.json'); });
 $('#resetLocal').addEventListener('click',()=>{ if(!userDraws.length){ toast('אין תוספות מקומיות'); return; } if(!confirm(`למחוק ${userDraws.length} הגרלות שנוספו בדפדפן הזה?`)) return; userDraws=[]; saveUser(); renderAll(); toast('התוספות המקומיות נמחקו'); });
