@@ -1,11 +1,12 @@
 name: Update lotto results
 
-# Lotto draws are usually on Tuesday and Saturday nights (Israel time); run the
-# night after and again the next morning in case the sources were late.
+# Lotto draws are usually on Tuesday and Saturday nights (Israel time), but holiday weeks move
+# them to other days (Sun/Wed/Thu), so check every night and again every morning.
 on:
   schedule:
-    - cron: '30 21 * * 2,6'
-    - cron: '0 5 * * 0,3'
+    - cron: '45 20 * * *'
+    - cron: '30 22 * * *'
+    - cron: '0 5 * * *'
   workflow_dispatch:
 
 permissions:

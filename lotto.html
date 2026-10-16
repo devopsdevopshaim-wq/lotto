@@ -1090,14 +1090,32 @@ $('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ 
 /* ---------- boot ---------- */
 (async function boot(){
   buildPickers(); loadUser();
-  try{
-    const r = await fetch('lotto.csv',{cache:'no-cache'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    baseDraws = parseCsv(decodeBuffer(await r.arrayBuffer()));
-  }catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
+  try{ baseDraws = await fetchBase(); }
+  catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
   const h=location.hash.slice(1); if(h && document.getElementById('p-'+h)) go(h,false);
+  /* keep an open tab current: re-check lotto.csv every 10 minutes and whenever the tab comes back into view */
+  setInterval(refreshBase, 6e5);
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshBase(); });
+  window.addEventListener('focus', refreshBase);
 })();
+async function fetchBase(){
+  const r = await fetch('lotto.csv?t='+Date.now(),{cache:'no-store'});
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return parseCsv(decodeBuffer(await r.arrayBuffer()));
+}
+async function refreshBase(){
+  if(refreshBase.busy || Date.now()-(refreshBase.at||0) < 6e4) return;
+  refreshBase.busy=true; refreshBase.at=Date.now();
+  try{
+    const fresh = await fetchBase();
+    const top = d => d.length ? d[0].id+'|'+d[0].date : '';
+    if(fresh.length && (fresh.length!==baseDraws.length || top(fresh)!==top(baseDraws))){
+      baseDraws = fresh; renderAll(); toast('נוספו תוצאות חדשות');
+    }
+  }catch(e){ console.warn('refresh failed', e); }
+  finally{ refreshBase.busy=false; }
+}
 </script>
 </body>
 </html>
