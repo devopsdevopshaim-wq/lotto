@@ -277,7 +277,7 @@ details summary{cursor:pointer;font-weight:700}
       <div class="card stack">
         <h3>טפסים לפי המודל</h3>
         <div class="ctrl">
-          <label for="pCount">כמות</label><select id="pCount"><option>1</option><option>2</option><option>4</option><option selected>6</option><option>8</option><option>10</option><option>14</option></select>
+          <label for="pCount">כמות</label><select id="pCount"><option>1</option><option>2</option><option>4</option><option selected>6</option><option>8</option><option>10</option><option>7</option><option>14</option></select>
           <label for="pSpread">פיזור</label><select id="pSpread"><option value="7">ממוקד</option><option value="3.5" selected>מאוזן</option><option value="1.5">מגוון</option></select>
           <label class="ctrl small"><input type="checkbox" id="pBalance" checked> סינון איזון</label>
         </div>
@@ -382,6 +382,7 @@ details summary{cursor:pointer;font-weight:700}
         <div><div class="eyebrow" style="margin-bottom:6px">שיטה</div>
           <div class="seg" id="genMode">
             <button data-m="smart" class="on">חכם (פחות חלוקה)</button>
+            <button data-m="cover">סט מכסה</button>
             <button data-m="random">אקראי</button>
             <button data-m="hot">חמים</button>
             <button data-m="cold">קרים</button>
@@ -390,7 +391,7 @@ details summary{cursor:pointer;font-weight:700}
           <div class="muted small" id="genModeNote" style="margin-top:8px"></div>
         </div>
         <div class="ctrl">
-          <label for="genCount">כמות טפסים</label><select id="genCount"><option>1</option><option>2</option><option selected>4</option><option>6</option><option>8</option><option>10</option><option>14</option></select>
+          <label for="genCount">כמות טפסים</label><select id="genCount"><option>1</option><option>2</option><option selected>4</option><option>6</option><option>7</option><option>8</option><option>10</option><option>14</option></select>
           <label for="genFixed" style="margin-inline-start:10px">מספרים קבועים</label><input type="text" id="genFixed" placeholder="למשל 7, 19" style="width:120px">
         </div>
         <div class="ctrl"><button class="btn primary" id="genBtn">צור טפסים</button><button class="btn" id="genCopy">העתק</button></div>
@@ -919,6 +920,7 @@ function genPredTickets(){
 let genMode='smart';
 const MODE_NOTE={
   smart:'אקראי לגמרי, עם סינון של צירופים פופולריים: לפחות 2 מספרים מעל 31 (מעבר לימי החודש), סכום בטווח המרכזי, איזון בין זוגיים לאי־זוגיים, בלי רצפים ותבניות, ובלי צירוף שכבר עלה בעבר.',
+  cover:'הטפסים נבנים יחד ולא כל אחד לבד: כמה שפחות מספרים חוזרים בין הטפסים, וכל טופס מקבל מספר חזק אחר. עם 7 טפסים ומעלה אחד מהם יקבל את החזק הנכון בוודאות, ו־6 טפסים מכסים 36 מתוך 37 המספרים. זה לא מגדיל את הסיכוי לפרס הראשון, אבל מגדיל את הסיכוי שלפחות טופס אחד יזכה במשהו.',
   random:'בחירה אקראית אחידה עם מחולל מספרים קריפטוגרפי. סטטיסטית זהה לכל שיטה אחרת.',
   hot:'הגרלה משוקללת לטובת המספרים שעלו הכי הרבה בטווח שנבחר.',
   cold:'הגרלה משוקללת לטובת המספרים שעלו הכי מעט בטווח שנבחר.',
@@ -947,7 +949,8 @@ function genTickets(){
   if(genMode==='due') NUMS.forEach(n=>w[n]=0.3+ST.last[n]);
   const sw=Array(N_STRONG+1).fill(1); sw[0]=0;
   if(genMode==='hot') for(let s=1;s<=N_STRONG;s++) sw[s]=1+ST.sfreq[s];
-  for(let t=0;t<count;t++){
+  if(genMode==='cover') coverSet(count,fixed,drawn).forEach(t=>{ seen.add(t.nums.join('-')); out.push({...t,sum:sumOf(t.nums),odd:t.nums.filter(n=>n%2).length,fresh:!drawn.has(t.nums.join('-'))}); });
+  for(let t=out.length;t<count;t++){
     let a, tries=0;
     do{ a=weightedPick(w,PICK,fixed); tries++; } while(tries<5000 && (seen.has(a.join('-')) || (genMode==='smart' && !smartOk(a,drawn))));
     seen.add(a.join('-'));
@@ -956,8 +959,52 @@ function genTickets(){
   genTickets.last=out;
   $('#tickets').innerHTML = out.map((t,i)=>`<div class="ticket"><div class="balls start">${t.nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(t.strong,'sm')}</div>
     <div class="tags"><span class="pill">טופס ${i+1}</span><span class="pill">סכום ${t.sum}</span><span class="pill">${t.odd} אי־זוגיים</span>${t.fresh?'<span class="pill good">לא עלה מעולם</span>':'<span class="pill bad">כבר עלה בעבר</span>'}</div></div>`).join('')
-    + `<div class="muted small">סיכוי לפרס ראשון עם ${count} ${count===1?'טופס':'טפסים'}: 1 ל־${fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/count))}.</div>`;
+    + oddsBox(out);
 }
+/* tickets that share as few numbers as possible, strong numbers cycling through 1..7 */
+function coverSet(count, fixed, drawn){
+  let best=null, bestScore=-1;
+  for(let attempt=0; attempt<60; attempt++){
+    const out=[], use=Array(N_MAIN+1).fill(0), strongs=[...Array(N_STRONG)].map((_,i)=>i+1);
+    for(let i=strongs.length-1;i>0;i--){ const j=Math.floor(rnd01()*(i+1)); [strongs[i],strongs[j]]=[strongs[j],strongs[i]]; }
+    for(let t=0;t<count;t++){
+      let a, tries=0, ok;
+      do{ const minUse=Math.min(...NUMS.filter(n=>!fixed.includes(n)).map(n=>use[n]));
+        const w=Array(N_MAIN+1).fill(0); NUMS.forEach(n=>w[n]= use[n]===minUse?1:0.02);
+        a=weightedPick(w,PICK,fixed); tries++;
+        let run=1,mr=1; for(let i=1;i<6;i++){ run=a[i]-a[i-1]===1?run+1:1; mr=Math.max(mr,run); }
+        ok = mr<=2 && a.some(n=>n>31) && !drawn.has(a.join('-'));
+      } while(!ok && tries<400);
+      a.forEach(n=>use[n]++); out.push({nums:a, strong:strongs[t%N_STRONG]});
+    }
+    const score=NUMS.filter(n=>use[n]>0).length*100-Math.max(...use);
+    if(score>bestScore){ bestScore=score; best=out; }
+  }
+  return best;
+}
+/* what a set of tickets can realistically do in one draw, by simulation */
+function oddsBox(tk){
+  const SIMS=60000, deck=NUMS.slice(); let any=0, s3=0;
+  for(let i=0;i<SIMS;i++){
+    for(let j=0;j<PICK;j++){ const k=j+Math.floor(Math.random()*(N_MAIN-j)); [deck[j],deck[k]]=[deck[k],deck[j]]; }
+    const w=new Set(deck.slice(0,PICK)), s=1+Math.floor(Math.random()*N_STRONG);
+    let hit=false, hitS=false;
+    for(const t of tk){ const h=t.nums.filter(n=>w.has(n)).length; if(h>=3){ hit=true; if(t.strong===s) hitS=true; } }
+    any+=hit; s3+=hitS;
+  }
+  const p1=1-Math.pow(1-p3plus(),tk.length), n=tk.length, pct=x=>fmt(100*x,1)+'%';
+  const miss15=Math.pow(1-p3plus(),15);
+  return `<div class="card" style="margin-top:10px"><div class="eyebrow" style="margin-bottom:6px">מה הטפסים האלה יכולים לעשות בהגרלה אחת</div>
+    <table class="tbl"><tbody>
+      <tr><td>לפחות טופס אחד עם 3 מספרים ומעלה (פרס כלשהו)</td><td class="num"><b>${pct(any/SIMS)}</b></td></tr>
+      <tr><td>אותו דבר עם ${n} טפסים אקראיים</td><td class="num">${pct(p1)}</td></tr>
+      <tr><td>3+ מספרים יחד עם החזק הנכון באותו טופס</td><td class="num">${pct(s3/SIMS)}</td></tr>
+      <tr><td>פרס שלישי ומעלה (5 + חזק)</td><td class="num" style="white-space:nowrap">1 ל־${fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/(6*31)/n))}</td></tr>
+      <tr><td>פרס ראשון</td><td class="num" style="white-space:nowrap">1 ל־${fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/n))}</td></tr>
+    </tbody></table>
+    <p class="muted small">חושב בסימולציה של ${fmt(SIMS)} הגרלות על הטפסים שבדיוק נוצרו. 15 טפסים בלי שום זכייה זו תוצאה רגילה לגמרי: זה קורה ב־${pct(miss15)} מהמקרים.</p></div>`;
+}
+function p3plus(){ let p=0; for(let k=3;k<=6;k++) p+=C(PICK,k)*C(N_MAIN-PICK,PICK-k)/C(N_MAIN,PICK); return p; }
 
 /* ---------- ticket check ---------- */
 const picked=new Set(); let pickedS=0;
