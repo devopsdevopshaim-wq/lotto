@@ -738,7 +738,9 @@ html.hc .sc{border-color:#000;color:#000}
     <button class="btn" data-say="selection">הקרא טקסט שסימנתי</button>
     <button class="btn" data-say="stop">עצור הקראה</button>
   </div>
-  <label class="a11y-row"><span>מהירות הקראה</span><input type="range" id="a11yRate" min="0.6" max="1.6" step="0.1" value="1"></label>
+  <label class="a11y-row"><span>קול</span><select id="a11yVoiceSel" style="flex:1"></select></label>
+  <div class="a11y-row"><button class="btn" type="button" id="a11yTest">השמע דוגמה</button></div>
+  <label class="a11y-row"><span>מהירות הקראה</span><input type="range" id="a11yRate" min="0.6" max="1.6" step="0.05" value="0.95"></label>
   <label class="a11y-row"><input type="checkbox" id="a11yAuto"> <span>להקריא כל עמוד כשפותחים אותו</span></label>
   <div class="a11y-sec">תצוגה</div>
   <div class="a11y-grid">
@@ -926,7 +928,7 @@ function renderAll(){
 }
 /* ===== read-aloud (Web Speech API, Hebrew) and display settings ===== */
 const A11Y_KEY='lotto-a11y';
-const A11Y={ fs:1, hc:false, motion:false, links:false, rate:1, auto:false };
+const A11Y={ fs:1, hc:false, motion:false, links:false, rate:0.95, auto:false, voice:'' };
 try{ Object.assign(A11Y, JSON.parse(ls.get(A11Y_KEY)||'{}')); }catch(e){}
 const saveA11y=()=>ls.set(A11Y_KEY,JSON.stringify(A11Y));
 function applyA11y(){
@@ -937,28 +939,98 @@ function applyA11y(){
 }
 const SAY_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 6.5c2.7 3 2.7 8 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
 let heVoice=null, sayBtn=null, sayEl=null;
-function pickVoice(){ if(!('speechSynthesis' in window)) return; const v=speechSynthesis.getVoices(); heVoice=v.find(x=>/^he|^iw/i.test(x.lang))||null;
-  const note=$('#a11yVoice'); if(note) note.textContent = heVoice ? `קול ההקראה: ${heVoice.name}` : (v.length? 'לא נמצא במכשיר קול בעברית. אפשר להוסיף "עברית" בהגדרות הדיבור של המכשיר.' : ''); }
+/* Voice choice: a Hebrew female voice, natural/neural ones first.
+   Edge: "Microsoft Hila Online (Natural)" · Windows: "Microsoft Hila" · iPhone/Mac: "Carmit" · Android: Google Hebrew (female). */
+const FEMALE=/hila|carmit|google|female|אישה|נשי/i, MALE=/asaf|avri|male\b|גבר/i, NATURAL=/natural|neural|online|enhanced|premium|siri/i;
+const heVoices=()=>('speechSynthesis' in window ? speechSynthesis.getVoices() : []).filter(x=>/^(he|iw)/i.test(x.lang));
+const voiceLabel=v=>{ const n=v.name, he=/hila/i.test(n)?'הילה':/carmit/i.test(n)?'כרמית':/asaf/i.test(n)?'אסף':/avri/i.test(n)?'אברי':/google/i.test(n)?'Google עברית':n.replace(/Microsoft |Google /,'').replace(/ - Hebrew \(Israel\)/,''); return he+(NATURAL.test(n)?' · קול טבעי':''); };
+const voiceScore=v=>(FEMALE.test(v.name)?10:0)+(MALE.test(v.name)?-20:0)+(NATURAL.test(v.name)?6:0)+(v.localService?0:1);
+function pickVoice(){
+  if(!('speechSynthesis' in window)) return;
+  const list=heVoices().sort((a,b)=>voiceScore(b)-voiceScore(a)), saved=A11Y.voice;
+  heVoice=list.find(v=>v.name===saved)||list[0]||null;
+  const sel=$('#a11yVoiceSel');
+  if(sel){ sel.innerHTML=list.length? list.map((v,i)=>`<option value="${v.name.replace(/"/g,'&quot;')}"${v===heVoice?' selected':''}>${voiceLabel(v)}${i===0?' (מומלץ)':''}${MALE.test(v.name)?' · קול גבר':''}</option>`).join('') : '<option>אין קול עברי במכשיר</option>'; sel.disabled=!list.length; }
+  const note=$('#a11yVoice'); if(!note) return;
+  const natural=heVoice&&NATURAL.test(heVoice.name), female=heVoice&&!MALE.test(heVoice.name);
+  note.textContent = !heVoice ? 'לא נמצא במכשיר קול בעברית. לקול הכי טבעי פתחו את האתר בדפדפן Edge (הקול "הילה"), או הוסיפו עברית בהגדרות הדיבור של הטלפון.'
+    : natural&&female ? `מקריאה: ${voiceLabel(heVoice)}. זה הקול האנושי ביותר שיש במכשיר.`
+    : `מקריאה: ${voiceLabel(heVoice)}. לקול אנושי יותר: בדפדפן Edge יש את הקול "הילה" הטבעי, ובאייפון אפשר להוריד את "כרמית (משופר)" בהגדרות › נגישות › תוכן מוקרא.`;
+}
 if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
-function stopSay(){ if('speechSynthesis' in window) speechSynthesis.cancel(); if(sayBtn){ sayBtn.classList.remove('on'); sayBtn.setAttribute('aria-label',sayBtn.dataset.label); } if(sayEl) sayEl.classList.remove('reading'); sayBtn=sayEl=null; }
-function cleanText(t){ return t.replace(/[•·|]/g,', ').replace(/(\d)\s*\n\s*(?=\d)/g,'$1, ').replace(/\+/g,' ועוד ').replace(/σ/g,' סטיות תקן').replace(/[−–]/g,'-').replace(/\s*\n+\s*/g,'. ').replace(/\s{2,}/g,' ').replace(/(\.\s*){2,}/g,'. ').trim(); }
+function stopSay(){ if('speechSynthesis' in window) speechSynthesis.cancel(); clearTimeout(say._t); if(sayBtn){ sayBtn.classList.remove('on'); sayBtn.setAttribute('aria-label',sayBtn.dataset.label); } if(sayEl) sayEl.classList.remove('reading'); sayBtn=sayEl=null; }
+
+/* Hebrew in words, so numbers and dates sound the way people say them */
+const HE_UNITS=['','אחת','שתיים','שלוש','ארבע','חמש','שש','שבע','שמונה','תשע'];
+const HE_TEENS=['עשר','אחת עשרה','שתים עשרה','שלוש עשרה','ארבע עשרה','חמש עשרה','שש עשרה','שבע עשרה','שמונה עשרה','תשע עשרה'];
+const HE_TENS=['','','עשרים','שלושים','ארבעים','חמישים','שישים','שבעים','שמונים','תשעים'];
+function heNum(n){ n=Math.round(n); if(n===0) return 'אפס'; if(n<10) return HE_UNITS[n]; if(n<20) return HE_TEENS[n-10]; if(n<100){ const t=Math.floor(n/10), u=n%10; return HE_TENS[t]+(u?' ו'+HE_UNITS[u]:''); } return fmt(n); }
+const HE_MONTHS=['בינואר','בפברואר','במרץ','באפריל','במאי','ביוני','ביולי','באוגוסט','בספטמבר','באוקטובר','בנובמבר','בדצמבר'];
+/* days of the month are said in the masculine form: "עשרים וארבעה באוקטובר" */
+const HE_DAY_U=['','אחד','שניים','שלושה','ארבעה','חמישה','שישה','שבעה','שמונה','תשעה'];
+const HE_DAY_T=['עשרה','אחד עשר','שנים עשר','שלושה עשר','ארבעה עשר','חמישה עשר','שישה עשר','שבעה עשר','שמונה עשר','תשעה עשר'];
+const heDay=d=> d<10?HE_DAY_U[d] : d<20?HE_DAY_T[d-10] : HE_TENS[Math.floor(d/10)]+(d%10?' ו'+HE_DAY_U[d%10]:'');
+function heDate(iso){ const [y,m,d]=iso.split('-').map(Number); return `${heDay(d)} ${HE_MONTHS[m-1]}`; }
+const heList=a=>a.length<2? a.map(heNum).join('') : a.slice(0,-1).map(heNum).join(', ')+' ו'+heNum(a[a.length-1]);
+const pct1=x=>`${fmt(100*x,0)} אחוז`;
+function cleanText(t){ return t.replace(/[•·|]/g,', ').replace(/(\d)\s*\n\s*(?=\d)/g,'$1, ').replace(/(\d)\+/g,'$1 ומעלה').replace(/\+/g,' ועוד ').replace(/σ/g,' סטיות תקן').replace(/₪/g,' שקלים').replace(/[−–]/g,'-').replace(/\s*\n+\s*/g,'. ').replace(/\s{2,}/g,' ').replace(/(\.\s*){2,}/g,'. ').trim(); }
+
+/* speak sentence by sentence with short breaths between them, like a person reading aloud */
 function say(text, btn, el){
   if(!('speechSynthesis' in window)){ toast('הדפדפן הזה לא תומך בהקראה'); return; }
   const same = btn && sayBtn===btn; stopSay(); if(same) return;
-  const parts=cleanText(text).match(/[^.!?]+[.!?]?/g)||[]; if(!parts.length) return;
+  const parts=(cleanText(text).match(/[^.!?]+[.!?]?/g)||[]).map(x=>x.trim()).filter(x=>x.length>1); if(!parts.length) return;
+  if(!heVoice) pickVoice();
   sayBtn=btn||null; sayEl=el||null; if(sayBtn){ sayBtn.classList.add('on'); sayBtn.setAttribute('aria-label','עצור הקראה'); } if(sayEl) sayEl.classList.add('reading');
-  parts.forEach((p,i)=>{ const u=new SpeechSynthesisUtterance(p.trim()); u.lang='he-IL'; if(heVoice) u.voice=heVoice; u.rate=A11Y.rate; if(i===parts.length-1) u.onend=u.onerror=()=>{ if(sayBtn===btn) stopSay(); }; speechSynthesis.speak(u); });
+  let i=0; const owner=btn;
+  const next=()=>{ if(sayBtn!==owner && owner) return; if(i>=parts.length){ if(sayBtn===owner) stopSay(); return; }
+    const txt=parts[i++], u=new SpeechSynthesisUtterance(txt); u.lang='he-IL'; if(heVoice) try{ u.voice=heVoice; }catch(e){}
+    u.rate=A11Y.rate*(txt.length<40?0.97:1); u.pitch=1.04; u.volume=1;
+    u.onend=()=>{ say._t=setTimeout(next, /\?$/.test(txt)?320:220); }; u.onerror=()=>{ if(sayBtn===owner) stopSay(); };
+    speechSynthesis.speak(u); };
+  next();
 }
-const ticketSpeech=(t,title)=>`${title}: ${t.nums.join(', ')}. מספר חזק ${t.strong}.`;
+
+/* spoken scripts: written for the ear, short sentences, numbers in words */
+const ticketSpeech=(t,title)=>`${title}: ${heList(t.nums)}, והמספר החזק ${heNum(t.strong)}.`;
+function speakSlip(){ if(!SMART) return ''; const id=cur[0].id+1;
+  return `זה הטופס המושכל להגרלה הקרובה. המספרים הם ${heList(SMART.nums)}, והמספר החזק ${heNum(SMART.strong)}.
+  איך בחרתי אותם? לקחתי את אלף ההגרלות האחרונות, ונתתי העדפה קלה למספרים שיצאו יותר. רק העדפה קלה, כי מהניסיון, השכיחות לא באמת מנבאת.
+  אחר כך סיננתי צירופים שהרבה אנשים ממלאים. ככה, אם הטופס יזכה, הפרס יתחלק בין פחות אנשים.
+  הטופס הזה קבוע עד ההגרלה, ומתחלף לבד אחריה.`; }
+function speakScore(){ const S=SMART_STATS; if(!S) return '';
+  const avg=S.hits/(S.N||1);
+  return `בדקתי איך הטופס המושכל היה מצליח ב${S.N===100?'מאה':' '+fmt(S.N)} ההגרלות האחרונות. לפני כל הגרלה בניתי אותו רק ממה שהיה ידוע עד אז.
+  בממוצע הוא תפס ${avg>0.9&&avg<1.1?'בערך מספר אחד':fmt(avg,1)+' מספרים'} בכל הגרלה. בחירה אקראית תופסת בערך אותו דבר.
+  שלושה מספרים ומעלה הוא תפס ${heNum(S.g3)} פעמים. בבחירה אקראית זה קורה בערך ${heNum(Math.round(S.N*p3plus()))} פעמים.
+  המספר החזק עלה ${heNum(S.sh)} פעמים. בבחירה אקראית, בערך ${heNum(Math.round(S.N/N_STRONG))}.
+  ${Math.abs(S.zz)<2?'במילים פשוטות, התוצאות בטווח הרגיל של המזל.':'יש כאן סטייה חריגה, ונבדוק אם היא נשמרת.'}`; }
+function speakDiag(){ const S=SMART_STATS; if(!S) return '';
+  return `שלושה דברים לא עבדו בניחושים עד עכשיו.
+  הראשון, שפטנו לפי מעט מדי טפסים. גם כשהכול תקין, בערך חצי מהפעמים חמישה עשר טפסים לא זוכים בכלום. לכן עכשיו כל טופס נבדק לאורך מאה הגרלות.
+  השני, ניחשנו לפי המספרים שיצאו הכי הרבה. בדקתי, והם לא תופסים יותר מהמספרים הנדירים. לכן השכיחות נשארת רק העדפה קלה.
+  השלישי, חיפוש מספרים שיוצאים יחד פשוט מצא הגרלה שכבר הייתה. צירוף מלא אף פעם לא חזר.
+  מה כן אפשר לשפר? להתחלק בפרס עם פחות אנשים, ולכסות יותר מספרים כששולחים כמה טפסים.`; }
+function speakNext(){ const nd=nextDrawInfo.cache||nextDrawInfo(); const d=nd&&nd.iso;
+  return `ההגרלה הקרובה${nd&&nd.id?', מספר '+nd.id:''}${d?', ב'+heDate(d):''}, בעשר וחצי בערב.`+(SMART?` ${ticketSpeech(SMART,'והטופס המושכל שלה')}`:''); }
+function speakLast(){ const d=all[0]; if(!d) return '';
+  const x=SMART_LAST; return `בהגרלה האחרונה, ב${heDate(d.date)}, עלו המספרים ${heList(d.nums)}, והמספר החזק ${heNum(d.strong)}.`+
+    (x?` הטופס המושכל להגרלה הזאת תפס ${x.h===0?'אף מספר':x.h===1?'מספר אחד':heNum(x.h)+' מספרים'}${x.s?', וגם את החזק':''}.`:''); }
+function speakCart(){ if(!CART.length) return 'הסל עדיין ריק. אפשר להוסיף טופס, או לכתוב תקציב ולבקש חלוקה.';
+  const tables=CART.reduce((a,f)=>a+formTables(f),0), cost=CART.reduce((a,f)=>a+formCost(f),0);
+  return `בסל שלך יש ${CART.length===1?'טופס אחד':heNum(CART.length)+' טפסים'}, עם ${fmt(tables)} טבלאות. `+
+    CART.map((f,i)=>`טופס ${heNum(i+1)}: ${describe(f).replace(/·/g,',')}, ${fmt(formCost(f))} שקלים.`).join(' ')+
+    ` סך הכול לתשלום: ${fmt(cost)} שקלים.`; }
+function speak1000(){ return `ניתוח של אלף ההגרלות האחרונות. `+$('#k1000').innerText.split('\n').slice(1,30).join('\n'); }
 /* [host, text builder, where the button goes inside the host (null = pinned to the corner)] */
 const SAY_TARGETS=[
-  ['#slip', ()=>SMART ? ticketSpeech(SMART,`הטופס המושכל להגרלה ${cur[0].id+1}`)+' '+[...$$('#slip .slip-why li')].map(li=>li.innerText).join(' ') : '', '.slip-foot'],
-  ['#score', ()=>$('#score').innerText.split('\n').filter(l=>!/^\d{2}\/\d{2}/.test(l)).slice(0,14).join('\n')],
-  ['#diag', ()=>$('#diag').innerText],
-  ['.nextdraw', ()=>`${$('#nextTitle').innerText}. ${$('#nextMeta').innerText}. `+(SMART?ticketSpeech(SMART,'הטופס המושכל'):''), '.ctrl'],
-  ['.lastdraw', ()=>{ const d=all[0]; return d?`התוצאה האחרונה, ${$('#lastTitle').innerText}, ${$('#lastMeta').innerText}. המספרים: ${d.nums.join(', ')}. מספר חזק ${d.strong}. ${$('#lastVsPred').innerText}`:''; }, '.meta>div'],
-  ['#cartSum', ()=>$('#cartSum').innerText.replace(/₪/g,' שקלים'), '.ctrl'],
-  ['#k1000', ()=>$('#k1000').innerText.split('\n').slice(0,40).join('\n')],
+  ['#slip', speakSlip, '.slip-foot'],
+  ['#score', speakScore],
+  ['#diag', speakDiag],
+  ['.nextdraw', speakNext, '.ctrl'],
+  ['.lastdraw', speakLast, '.meta>div'],
+  ['#cartSum', speakCart, '.ctrl'],
+  ['#k1000', speak1000],
 ];
 function sayButton(label){ const b=document.createElement('button'); b.type='button'; b.className='say pin'; b.innerHTML=SAY_ICON+'<span>הקרא</span>'; b.dataset.label=label; b.setAttribute('aria-label',label); return b; }
 function mountSay(){
@@ -967,7 +1039,7 @@ function mountSay(){
     const at=slot&&el.querySelector(slot); if(at){ b.classList.remove('pin'); at.appendChild(b); } else { el.classList.add('say-host'); el.prepend(b); } });
   $$('section.page').forEach(sec=>{ const head=sec.querySelector('.sec-head'); if(!head||head.querySelector('.say')) return; const b=sayButton('הקראת העמוד '+(head.querySelector('h2')?.innerText||'')); b.classList.remove('pin'); b.onclick=()=>say(pageSpeech(sec),b,sec); head.appendChild(b); });
 }
-function pageSpeech(sec){ const head=sec.querySelector('.sec-head'); const cards=[...sec.querySelectorAll('.card')].filter(c=>c.offsetParent).map(c=>c.innerText.split('\n').slice(0,18).join('\n')); return [head?.innerText||'',...cards].join('\n').slice(0,2400); }
+function pageSpeech(sec){ if(sec.id==='p-cart') return speakCart(); const head=sec.querySelector('.sec-head'); const cards=[...sec.querySelectorAll('.card')].filter(c=>c.offsetParent).map(c=>c.innerText.split('\n').slice(0,18).join('\n')); return [head?.innerText||'',...cards].join('\n').slice(0,2400); }
 function setupA11y(){
   applyA11y(); mountSay();
   const panel=$('#a11y'), btn=$('#a11yBtn');
@@ -976,15 +1048,17 @@ function setupA11y(){
   document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!panel.hidden){ toggle(false); btn.focus(); } else stopSay(); } });
   panel.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
     if(b.dataset.say==='stop') return stopSay();
-    if(b.dataset.say==='ticket') return SMART && say(ticketSpeech(SMART,`הטופס המושכל להגרלה ${cur[0].id+1}`),null,$('#slip'));
+    if(b.dataset.say==='ticket') return SMART && say(ticketSpeech(SMART,'הטופס המושכל להגרלה הקרובה'),null,$('#slip'));
     if(b.dataset.say==='selection'){ const t=String(getSelection()||'').trim(); return t? say(t) : toast('סמנו קודם טקסט בעמוד'); }
-    if(b.dataset.say==='page'){ const sec=$('section.page.on'); return say([$('.nextdraw')&&SAY_TARGETS[3][1](), SMART?SAY_TARGETS[0][1]():'', sec?pageSpeech(sec):''].join('\n'),null,sec); }
+    if(b.dataset.say==='page'){ const sec=$('section.page.on'); return say(document.body.dataset.page==='predict' ? [speakNext(), speakSlip(), speakScore()].join('\n') : pageSpeech(sec),null,sec); }
     const a=b.dataset.a; if(!a) return;
     if(a==='font+') A11Y.fs=Math.min(1.6,+(A11Y.fs+.1).toFixed(1)); if(a==='font-') A11Y.fs=Math.max(.8,+(A11Y.fs-.1).toFixed(1));
     if(a==='contrast') A11Y.hc=!A11Y.hc; if(a==='motion') A11Y.motion=!A11Y.motion; if(a==='links') A11Y.links=!A11Y.links;
-    if(a==='reset') Object.assign(A11Y,{fs:1,hc:false,motion:false,links:false,rate:1,auto:false});
+    if(a==='reset') Object.assign(A11Y,{fs:1,hc:false,motion:false,links:false,rate:0.95,auto:false,voice:''});
     saveA11y(); applyA11y(); });
   $('#a11yRate').addEventListener('input',e=>{ A11Y.rate=+e.target.value; saveA11y(); });
+  $('#a11yVoiceSel').addEventListener('change',e=>{ A11Y.voice=e.target.value; saveA11y(); pickVoice(); say('שלום, זה הקול שבחרת. ככה אקריא לך את הטופס.'); });
+  $('#a11yTest').addEventListener('click',()=>say(SMART?`שלום! ${ticketSpeech(SMART,'הנה הטופס המושכל להגרלה הקרובה')} בהצלחה.`:'שלום, ככה נשמעת ההקראה באתר.'));
   $('#a11yAuto').addEventListener('change',e=>{ A11Y.auto=e.target.checked; saveA11y(); });
 }
 
@@ -1131,7 +1205,7 @@ function smartTrack(N){
 }
 const PEN_PATHS=['M50 8C74 6 94 22 92 48C90 76 66 94 44 90C20 86 6 66 10 42C13 22 30 10 56 11','M48 7C76 8 95 28 91 54C87 78 62 93 40 88C17 83 5 60 11 38C16 19 34 8 60 12','M52 9C78 10 93 30 90 55C86 80 58 92 37 86C15 80 7 57 13 36C19 17 38 8 58 13'];
 function penSvg(i){ const d=PEN_PATHS[i%3]; return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" pathLength="1" style="--len:1;--d:${(.15+i*.12).toFixed(2)}s"/></svg>`; }
-let SMART=null, SMART_LAST=null;
+let SMART=null, SMART_LAST=null, SMART_STATS=null;
 function renderSmart(){
   const slip=$('#slip'); if(!slip) return;
   if(cur.length<201||!cur[0].id){ slip.innerHTML='<div class="muted">צריך לפחות 200 הגרלות כדי לבנות טופס.</div>'; $('#score').innerHTML=''; $('#diag').innerHTML=''; return; }
@@ -1168,6 +1242,7 @@ function renderSmart(){
   let top=0, bot=0, T=0;
   for(let i=0;i<Math.min(300,cur.length-1001);i++){ const ff=Array(N_MAIN+1).fill(0); for(let j=i+1;j<=i+1000;j++) cur[j].nums.forEach(x=>ff[x]++);
     const o=NUMS.slice().sort((a,b)=>ff[b]-ff[a]||a-b); top+=o.slice(0,6).filter(x=>cur[i].nums.includes(x)).length; bot+=o.slice(-6).filter(x=>cur[i].nums.includes(x)).length; T++; }
+  SMART_STATS={N,hits,g3,sh,zz,top,bot,T};
   const miss15=Math.pow(1-p3plus(),15), pct=x=>fmt(100*x,1)+'%', six=new Set(cur.map(d=>d.nums.join('-'))).size===cur.length;
   $('#diag').innerHTML=`<div class="eyebrow">אבחון</div><h3>מה לא עבד בניחושים עד עכשיו, ומה הטופס הזה עושה אחרת</h3>
     <div class="dx">
