@@ -291,6 +291,44 @@ body{background-image:radial-gradient(color-mix(in srgb,var(--line) 70%,transpar
 .a11y-grid .btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .a11y-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}
 .a11y-row input[type=range]{flex:1;accent-color:var(--pen)}
+[hidden]{display:none!important}
+.cart-bar{display:none}
+@media (max-width:900px){
+  .cart-bar{display:flex;position:fixed;inset:auto 0 0 0;z-index:30;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--ink);color:var(--surface);box-shadow:0 -10px 30px -12px rgba(0,0,0,.4)}
+  .cart-bar b{font-family:var(--display);font-size:32px;line-height:1}
+  .cart-bar .btn{background:var(--surface);color:var(--ink);border-color:var(--surface)}
+  body.has-bar footer{padding-bottom:90px}
+  body.has-bar .toast{bottom:92px}
+}
+.perfect{font-size:13.5px;margin:0}
+.cart-layout{display:grid;grid-template-columns:minmax(260px,330px) minmax(0,1fr);gap:16px;align-items:start}
+.cart-sum{position:sticky;top:76px;max-height:calc(100vh - 92px);overflow:auto;border-top:4px solid var(--print)}
+@media (max-width:900px){.cart-layout{grid-template-columns:1fr}.cart-sum{position:static;max-height:none;order:2}}
+.cart-sum h3{font-family:var(--display);font-size:34px;font-weight:700;line-height:1;margin:0 0 4px}
+.sum-total{display:flex;align-items:baseline;justify-content:space-between;gap:8px;border-block:1.5px solid var(--print);padding:10px 0;margin:10px 0}
+.sum-total b{font-family:var(--display);font-size:56px;line-height:.9;color:var(--print)}
+.sum-list{list-style:none;margin:0;padding:0;font-size:14px}
+.sum-list li{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-bottom:1px dashed var(--line)}
+.sum-list li:last-child{border-bottom:0}
+.sum-kv{display:grid;grid-template-columns:1fr auto;gap:4px 10px;font-size:13.5px;margin:8px 0}
+.sum-kv dd{margin:0;font-weight:700;text-align:left}
+.sum-kv dt{color:var(--muted)}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px}
+.plan{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--surface-2);display:flex;flex-direction:column;gap:6px}
+.plan h4{margin:0;font-size:15px}
+.plan .price{font-family:var(--display);font-size:34px;line-height:1}
+.plan ul{margin:0;padding-inline-start:18px;font-size:13px}
+.plan .btn{margin-top:auto}
+.forms{display:grid;gap:12px;margin-top:16px}
+.fslip{background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 12px 12px;padding:12px 14px;position:relative;box-shadow:var(--shadow)}
+.fslip::before{content:"";position:absolute;inset:0 0 auto 0;height:5px;background:repeating-linear-gradient(90deg,var(--print) 0 12px,transparent 12px 19px)}
+.fslip-head{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin:4px 0 8px}
+.fslip-head b{font-family:var(--display);font-size:28px;color:var(--print);line-height:1}
+.frows{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:4px 16px}
+.frow{display:flex;align-items:center;gap:8px;padding:3px 0;border-bottom:1px dashed var(--line)}
+.frow .i{font-size:12px;color:var(--muted);width:20px;text-align:center}
+.frow .balls{gap:3px;flex-wrap:nowrap}
+.frow .ball.xs{--s:25px}
 .reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
 html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
 html.no-motion .sc svg path{stroke-dashoffset:0}
@@ -308,6 +346,7 @@ html.hc .sc{border-color:#000;color:#000}
     <div class="brand"><span class="dot"></span><span>לוטו · מרכז ניתוח</span></div>
     <nav class="tabs" id="tabs">
       <button data-p="predict" class="on">תחזית</button>
+      <button data-p="cart">טפסים ועלות</button>
       <button data-p="overview">סקירה</button>
       <button data-p="freq">שכיחות</button>
       <button data-p="gaps">פערים</button>
@@ -425,6 +464,44 @@ html.hc .sc{border-color:#000;color:#000}
       <h3>השוואת כל המודלים</h3>
       <p class="muted small" style="margin-top:-4px">ממוצע הפגיעות של 6 המספרים המובילים בכל מודל, ב־300 ההגרלות האחרונות. בחירה אקראית נותנת בממוצע 0.973. כשמשווים כמה מודלים, סטייה של כ־2σ יכולה להופיע גם במקרה. מה שקובע הוא אם היתרון נשמר לאורך זמן, ואפשר לעקוב אחרי זה כאן אחרי כל הגרלה.</p>
       <div class="scroll" style="max-height:none"><table class="tbl" id="cmpTbl"></table></div>
+    </div>
+  </section>
+
+  <!-- CART: forms, prices, budget -->
+  <section class="page" id="p-cart">
+    <div class="sec-head"><div><h2>טפסים ועלות</h2><p>בונים את מה ששולחים להגרלה: כמה טפסים, כמה טבלאות בכל טופס, ומה זה עולה. בחלונית הסיכום מופיע כל הזמן המצב הכולל.</p></div></div>
+    <div class="cart-layout">
+      <aside class="card cart-sum" id="cartSum" aria-label="סיכום הטפסים"></aside>
+      <div class="cart-main">
+        <div class="card stack">
+          <h3>יש לי תקציב</h3>
+          <div class="ctrl"><label for="budget">סכום</label><input type="number" id="budget" min="6" step="1" value="100" inputmode="numeric" style="width:110px"> <span class="muted">₪</span>
+            <button class="btn primary" id="planBtn">הצע לי חלוקה</button></div>
+          <p class="perfect" id="perfect"></p>
+          <div id="plans" class="plans"></div>
+        </div>
+        <div class="card stack" style="margin-top:16px">
+          <h3>הוספת טופס</h3>
+          <div class="seg" id="formType" role="group" aria-label="סוג טופס">
+            <button data-t="reg" class="on">לוטו רגיל</button><button data-t="dbl">דאבל לוטו</button><button data-t="sys">שיטתי</button>
+          </div>
+          <div class="ctrl" id="rowsCtrl">
+            <button class="btn" data-preset="14">טופס מלא · 14 טבלאות</button>
+            <button class="btn" data-preset="6">חצי טופס · 6 טבלאות</button>
+            <label for="formRows" style="margin-inline-start:6px">או בחרו</label>
+            <select id="formRows"><option>2</option><option>4</option><option>6</option><option>8</option><option>10</option><option>12</option><option selected>14</option></select>
+          </div>
+          <div class="ctrl" id="sysCtrl" hidden><label for="sysSize">מספרים בטופס</label><select id="sysSize"><option value="8">8 (28 טבלאות)</option><option value="9">9 (84 טבלאות)</option><option value="10">10 (210 טבלאות)</option><option value="11">11 (462 טבלאות)</option><option value="12">12 (924 טבלאות)</option></select></div>
+          <div class="ctrl"><button class="btn primary" id="addForm">הוסף טופס</button><span class="muted small" id="addPrice"></span></div>
+          <p class="muted small" style="margin:0">הטבלה הראשונה היא הטופס המושכל. שאר הטבלאות נבנות כסט מכסה: כמה שפחות מספרים חוזרים, וכל טבלה מקבלת מספר חזק אחר.</p>
+        </div>
+        <div id="forms" class="forms"></div>
+        <div class="card" style="margin-top:16px">
+          <h3>מחירון</h3>
+          <div class="ctrl" style="margin-bottom:8px"><label for="tablePrice">מחיר טבלה</label><input type="number" id="tablePrice" min="0.5" step="0.1" style="width:80px"> <span class="muted small">₪. לפי מחירון מפעל הפיס בדוכן. אם המחיר השתנה, עדכנו כאן והכול יחושב מחדש.</span></div>
+          <div class="scroll" style="max-height:none"><table class="tbl" id="priceTbl"></table></div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -606,6 +683,7 @@ html.hc .sc{border-color:#000;color:#000}
   <p class="muted small" id="a11yVoice" style="margin:10px 0 0"></p>
 </aside>
 <div class="tip" id="tip"></div>
+<div class="cart-bar" id="cartBar" hidden><div><div class="small">סך הכול · <span id="barInfo"></span></div><b class="num" id="barTotal"></b></div><button class="btn" id="barGo">לסיכום המלא</button></div>
 
 <script>
 'use strict';
@@ -774,6 +852,7 @@ function renderAll(){
   renderSmart(); renderHero(); render1000(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
   if($('#p-backtest.on')) runBacktest();
   renderCheck();
+  renderCart(); if($('#plans') && !$('#plans').innerHTML) renderPlans();
   if(typeof mountSay==='function') mountSay();
 }
 /* ===== read-aloud (Web Speech API, Hebrew) and display settings ===== */
@@ -809,6 +888,7 @@ const SAY_TARGETS=[
   ['#diag', ()=>$('#diag').innerText],
   ['.nextdraw', ()=>`${$('#nextTitle').innerText}. ${$('#nextMeta').innerText}. `+(SMART?ticketSpeech(SMART,'הטופס המושכל'):''), '.ctrl'],
   ['.lastdraw', ()=>{ const d=all[0]; return d?`התוצאה האחרונה, ${$('#lastTitle').innerText}, ${$('#lastMeta').innerText}. המספרים: ${d.nums.join(', ')}. מספר חזק ${d.strong}. ${$('#lastVsPred').innerText}`:''; }, '.meta>div'],
+  ['#cartSum', ()=>$('#cartSum').innerText.replace(/₪/g,' שקלים'), '.ctrl'],
   ['#k1000', ()=>$('#k1000').innerText.split('\n').slice(0,40).join('\n')],
 ];
 function sayButton(label){ const b=document.createElement('button'); b.type='button'; b.className='say pin'; b.innerHTML=SAY_ICON+'<span>הקרא</span>'; b.dataset.label=label; b.setAttribute('aria-label',label); return b; }
@@ -837,6 +917,124 @@ function setupA11y(){
     saveA11y(); applyA11y(); });
   $('#a11yRate').addEventListener('input',e=>{ A11Y.rate=+e.target.value; saveA11y(); });
   $('#a11yAuto').addEventListener('change',e=>{ A11Y.auto=e.target.checked; saveA11y(); });
+}
+
+/* ===== forms, prices and budget ===== */
+const CART_KEY='lotto-cart', PRICE_KEY='lotto-table-price';
+let CART=[]; try{ CART=JSON.parse(ls.get(CART_KEY)||'[]'); if(!Array.isArray(CART)) CART=[]; }catch(e){ CART=[]; }
+let TABLE_PRICE=3; { const v=parseFloat(ls.get(PRICE_KEY)); if(v>0) TABLE_PRICE=v; }
+const saveCart=()=>ls.set(CART_KEY,JSON.stringify(CART));
+const shekel=x=>fmt(x,Number.isInteger(x)?0:2)+' ₪';
+const FORM_NAME={reg:'לוטו רגיל', dbl:'דאבל לוטו', sys:'לוטו שיטתי'};
+const formTables=f=> f.type==='sys' ? C(f.k,PICK) : f.rows.length;
+const formCost=f=> formTables(f)*TABLE_PRICE*(f.type==='dbl'?2:1);
+function p3inK(k){ let p=0; for(let j=3;j<=PICK;j++) p+=C(k,j)*C(N_MAIN-k,PICK-j)/C(N_MAIN,PICK); return p; }
+const cartRows=()=>CART.flatMap(f=>f.type==='sys'?[]:f.rows);
+function newRows(n){
+  const drawn=new Set(all.map(d=>d.nums.join('-'))), used=cartRows(), out=[];
+  if(SMART && !used.some(r=>r.nums.join('-')===SMART.nums.join('-'))) out.push({nums:SMART.nums.slice(),strong:SMART.strong});
+  if(out.length<n){
+    const usedS=new Set([...used,...out].map(r=>r.strong));
+    /* strong numbers rotate across the whole cart, the ones not used yet first */
+    const order=[...Array(N_STRONG)].map((_,i)=>i+1).sort((a,b)=>usedS.has(a)-usedS.has(b)||a-b);
+    coverSet(n-out.length,[],drawn).forEach((t,i)=>out.push({nums:t.nums,strong:order[i%N_STRONG]}));
+  }
+  return out.slice(0,n);
+}
+function sysNumbers(k){
+  const base=SMART?SMART.nums.slice():[], f=Array(N_MAIN+1).fill(0);
+  cur.slice(0,1000).forEach(d=>d.nums.forEach(x=>f[x]++));
+  const rest=NUMS.filter(x=>!base.includes(x)).sort((a,b)=>f[b]-f[a]||a-b);
+  return [...base,...rest].slice(0,k).sort((a,b)=>a-b);
+}
+const makeForm=(type,nOrK)=> type==='sys' ? {type, k:nOrK, nums:sysNumbers(nOrK), strong:SMART?SMART.strong:1} : {type, rows:newRows(nOrK)};
+function addForm(type,nOrK){ CART.push(makeForm(type,nOrK)); saveCart(); renderCart(); }
+function plansFor(B){
+  const P=TABLE_PRICE, plans=[], even=x=>Math.floor(x/2)*2;
+  const split=T=>{ const fs=[]; let t=T; while(t>0){ const n=Math.min(14,t); fs.push(n); t-=n; } return fs; };
+  const T=even(Math.floor(B/P+1e-9)); if(T>=2) plans.push({name:'הכי הרבה טבלאות', forms:split(T).map(n=>({type:'reg',n})), note:'כל טבלה היא ניחוש נפרד. הכי הרבה סיכויים לזכות במשהו.'});
+  const Td=even(Math.floor(B/(2*P)+1e-9)); if(Td>=2) plans.push({name:'דאבל לוטו', forms:split(Td).map(n=>({type:'dbl',n})), note:'חצי מהטבלאות, אבל כל פרס כפול.'});
+  let k=0; for(let x=12;x>=8;x--) if(C(x,PICK)*P<=B+1e-9){ k=x; break; }
+  if(k){ const rest=even(Math.floor((B-C(k,PICK)*P)/P+1e-9)); plans.push({name:`שיטתי ${k}`+(rest?' + רגיל':''), forms:[{type:'sys',k},...split(rest).map(n=>({type:'reg',n}))], note:`${k} מספרים בכל הצירופים שלהם. אם כמה מהם עולים, תופסים כמה פרסים בבת אחת.`}); }
+  return plans.map(pl=>{ const cost=pl.forms.reduce((a,f)=>a+(f.type==='sys'?C(f.k,PICK):f.n)*P*(f.type==='dbl'?2:1),0);
+    const miss=pl.forms.reduce((a,f)=>a*(f.type==='sys'?1-p3inK(f.k):Math.pow(1-p3plus(),f.n)),1);
+    return {...pl, cost, left:Math.round((B-cost)*100)/100, any:1-miss}; });
+}
+const describe=f=> f.type==='sys' ? `שיטתי ${f.k} · ${fmt(C(f.k,PICK))} טבלאות` : `${FORM_NAME[f.type]} · ${f.n??f.rows.length} טבלאות`;
+function renderPlans(){
+  const box=$('#plans'); if(!box) return;
+  const B=Math.max(0,+$('#budget').value||0), plans=plansFor(B);
+  const pair=2*TABLE_PRICE, lo=Math.floor(B/pair+1e-9)*pair, hi=lo+pair;
+  $('#perfect').innerHTML = B>=pair && Math.abs(B-lo)>1e-9 ? `<b>סכום מושלם:</b> טבלאות נמכרות בזוגות של ${shekel(pair)}, ולכן ${shekel(B)} לא מתחלקים עד הסוף. סכום שמנוצל עד השקל: <b>${shekel(lo)}</b> (${lo/TABLE_PRICE} טבלאות) או <b>${shekel(hi)}</b> (${hi/TABLE_PRICE} טבלאות).` : B>=pair ? `<b>סכום מושלם:</b> ${shekel(B)} מתחלקים בדיוק ל־${fmt(B/TABLE_PRICE)} טבלאות.` : '';
+  if(!plans.length){ box.innerHTML=`<p class="muted">המינימום הוא טופס של 2 טבלאות, ${shekel(2*TABLE_PRICE)}.</p>`; return; }
+  box.innerHTML=plans.map((pl,i)=>`<div class="plan"><h4>${pl.name}</h4><div class="price">${shekel(pl.cost)}</div>
+    <ul>${pl.forms.map(f=>`<li>${describe(f)}</li>`).join('')}</ul>
+    <div class="small">נשאר מהתקציב: <b>${shekel(pl.left)}</b><br>סיכוי לפרס כלשהו: <b>כ־${fmt(100*pl.any,1)}%</b></div>
+    <div class="small muted">${pl.note}</div>
+    <button class="btn primary" data-plan="${i}">קח את החלוקה הזו</button></div>`).join('');
+  box.onclick=e=>{ const b=e.target.closest('[data-plan]'); if(!b) return; const pl=plans[+b.dataset.plan];
+    if(CART.length && !confirm('להחליף את הטפסים שכבר בסל בחלוקה הזו?')) return;
+    CART=[]; pl.forms.forEach(f=>CART.push(makeForm(f.type, f.type==='sys'?f.k:f.n)));
+    saveCart(); renderCart(); toast('החלוקה נוספה לסל'); };
+}
+function cartOdds(){
+  const tk=[]; CART.forEach(f=>{ if(f.type!=='sys'){ tk.push(...f.rows); return; } const a=f.nums, rec=(st,pre)=>{ if(pre.length===PICK){ tk.push({nums:pre}); return; } for(let i=st;i<a.length;i++) rec(i+1,[...pre,a[i]]); }; rec(0,[]); });
+  if(!tk.length) return null;
+  const sets=tk.map(t=>t.nums), SIMS=Math.max(3000,Math.min(40000,Math.floor(3e6/tk.length))), deck=NUMS.slice(); let any=0;
+  for(let i=0;i<SIMS;i++){ for(let j=0;j<PICK;j++){ const k=j+Math.floor(Math.random()*(N_MAIN-j)); [deck[j],deck[k]]=[deck[k],deck[j]]; }
+    const w=new Set(deck.slice(0,PICK)); for(const s of sets){ let h=0; for(const x of s) if(w.has(x)) h++; if(h>=3){ any++; break; } } }
+  return any/SIMS;
+}
+let simTimer=null, formType='reg';
+function renderCart(){
+  const sum=$('#cartSum'); if(!sum) return;
+  const tables=CART.reduce((a,f)=>a+formTables(f),0), cost=Math.round(CART.reduce((a,f)=>a+formCost(f),0)*100)/100;
+  const strongs=new Set(CART.flatMap(f=>f.type==='sys'?[f.strong]:f.rows.map(r=>r.strong))), nums=new Set(CART.flatMap(f=>f.type==='sys'?f.nums:f.rows.flatMap(r=>r.nums)));
+  sum.innerHTML=`<div class="eyebrow">הסל שלי</div><h3>סיכום</h3>
+    ${CART.length?`<ul class="sum-list">${CART.map((f,i)=>`<li><span>${i+1}. ${describe(f)}</span><b class="num">${shekel(formCost(f))}</b></li>`).join('')}</ul>`:'<p class="muted">עדיין אין טפסים. הוסיפו טופס, או כתבו תקציב ולחצו "הצע לי חלוקה".</p>'}
+    <div class="sum-total"><span>סך הכול לתשלום</span><b class="num">${shekel(cost)}</b></div>
+    <dl class="sum-kv">
+      <dt>טפסים</dt><dd>${CART.length}</dd>
+      <dt>טבלאות (שורות)</dt><dd>${fmt(tables)}</dd>
+      <dt>מספרים שונים בסל</dt><dd>${nums.size} מתוך ${N_MAIN}</dd>
+      <dt>מספרים חזקים שונים</dt><dd>${strongs.size} מתוך ${N_STRONG}</dd>
+      <dt>סיכוי לפרס כלשהו (3+)</dt><dd id="sumAny">${tables?'מחשב…':'—'}</dd>
+      <dt>סיכוי לפרס ראשון</dt><dd>${tables?'1 ל־'+fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/tables)):'—'}</dd>
+    </dl>
+    <div class="ctrl"><button class="btn" id="cartCopy" ${CART.length?'':'disabled'}>העתק הכול</button><button class="btn danger" id="cartClear" ${CART.length?'':'disabled'}>נקה סל</button></div>
+    <p class="muted small" style="margin:10px 0 0">מחיר טבלה ${shekel(TABLE_PRICE)}, דאבל פי 2. הסיכויים לא מבטיחים זכייה. שחקו רק בסכום שנוח לכם להפסיד.</p>`;
+  $('#cartClear').onclick=()=>{ if(confirm('למחוק את כל הטפסים מהסל?')){ CART=[]; saveCart(); renderCart(); } };
+  $('#cartCopy').onclick=()=>{ const txt=CART.map((f,i)=>`טופס ${i+1} – ${describe(f)} (${shekel(formCost(f))})\n`+(f.type==='sys'?`${f.nums.join(' ')} | חזק ${f.strong}`:f.rows.map((r,j)=>`${j+1}) ${r.nums.join(' ')} | חזק ${r.strong}`).join('\n'))).join('\n\n')+`\n\nסך הכול: ${shekel(cost)}`;
+    (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('כל הטפסים הועתקו'),()=>toast('ההעתקה נכשלה')); };
+  clearTimeout(simTimer); if(tables) simTimer=setTimeout(()=>{ const o=cartOdds(), el=$('#sumAny'); if(o!==null&&el) el.textContent=fmt(100*o,1)+'%'; },60);
+  $('#forms').innerHTML=CART.map((f,i)=>`<article class="fslip" aria-label="טופס ${i+1}"><div class="fslip-head"><div><b>טופס ${i+1}</b> <span class="muted">${describe(f)}</span></div>
+      <div class="ctrl"><span class="pill gold">${shekel(formCost(f))}</span>${f.type==='sys'?'':`<button class="btn" data-redo="${i}">ערבב מחדש</button>`}<button class="btn danger" data-del="${i}" aria-label="מחיקת טופס ${i+1}">מחק</button></div></div>
+      ${f.type==='sys'?`<div class="balls start">${f.nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(f.strong,'sm')}</div><p class="muted small" style="margin:6px 0 0">${f.k} מספרים: כל ${fmt(C(f.k,PICK))} הצירופים של 6 מתוכם משתתפים, עם החזק ${f.strong}.</p>`
+      :`<div class="frows">${f.rows.map((r,j)=>`<div class="frow"><span class="i">${j+1}</span><div class="balls start">${r.nums.map(n=>ball(n,'xs')).join('')}<span class="plus">+</span>${sball(r.strong,'xs')}</div></div>`).join('')}</div>`}
+    </article>`).join('');
+  const P=TABLE_PRICE;
+  $('#priceTbl').innerHTML=`<thead><tr><th>טופס</th><th>טבלאות</th><th>לוטו</th><th>דאבל לוטו</th></tr></thead><tbody>`+
+    [2,4,6,8,10,12,14].map(n=>`<tr><td>רגיל${n===14?' · טופס מלא':n===6?' · חצי טופס':''}</td><td class="num">${n}</td><td class="num"><b>${shekel(n*P)}</b></td><td class="num">${shekel(2*n*P)}</td></tr>`).join('')+
+    [8,9,10,11,12].map(k=>`<tr><td>שיטתי ${k}</td><td class="num">${fmt(C(k,PICK))}</td><td class="num"><b>${shekel(C(k,PICK)*P)}</b></td><td class="num">${shekel(2*C(k,PICK)*P)}</td></tr>`).join('')+'</tbody>';
+  updateAddPrice(); updateBar(tables,cost);
+}
+function updateBar(tables,cost){ const bar=$('#cartBar'); if(!bar) return; const show=CART.length>0 && !!$('#p-cart.on');
+  bar.hidden=!show; document.body.classList.toggle('has-bar',show); if(!show) return;
+  $('#barTotal').textContent=shekel(cost); $('#barInfo').textContent=`${CART.length} טפסים · ${fmt(tables)} טבלאות`; }
+function updateAddPrice(){ const el=$('#addPrice'); if(!el) return; const P=TABLE_PRICE, k=+$('#sysSize').value, n=+$('#formRows').value;
+  el.textContent = formType==='sys' ? `${fmt(C(k,PICK))} טבלאות · ${shekel(C(k,PICK)*P)}` : `${n} טבלאות · ${shekel(n*P*(formType==='dbl'?2:1))}`; }
+function setupCart(){
+  $('#tablePrice').value=TABLE_PRICE;
+  $('#tablePrice').addEventListener('change',e=>{ const v=parseFloat(e.target.value); if(v>0){ TABLE_PRICE=v; ls.set(PRICE_KEY,String(v)); renderCart(); renderPlans(); } });
+  $('#formType').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; formType=b.dataset.t; $$('#formType button').forEach(x=>x.classList.toggle('on',x===b)); $('#rowsCtrl').hidden=formType==='sys'; $('#sysCtrl').hidden=formType!=='sys'; updateAddPrice(); });
+  $('#rowsCtrl').addEventListener('click',e=>{ const b=e.target.closest('[data-preset]'); if(!b) return; addForm(formType,+b.dataset.preset); toast(`נוסף ${b.textContent.trim()}`); });
+  $('#formRows').addEventListener('change',updateAddPrice); $('#sysSize').addEventListener('change',updateAddPrice);
+  $('#addForm').addEventListener('click',()=>{ addForm(formType, formType==='sys'?+$('#sysSize').value:+$('#formRows').value); toast('הטופס נוסף לסל'); });
+  $('#barGo').addEventListener('click',()=>$('#cartSum').scrollIntoView({behavior:'smooth',block:'start'}));
+  $('#planBtn').addEventListener('click',renderPlans); $('#budget').addEventListener('keydown',e=>{ if(e.key==='Enter') renderPlans(); });
+  $('#forms').addEventListener('click',e=>{ const d=e.target.closest('[data-del]'), r=e.target.closest('[data-redo]');
+    if(d){ CART.splice(+d.dataset.del,1); saveCart(); renderCart(); }
+    if(r){ const f=CART[+r.dataset.redo], n=f.rows.length; f.rows=[]; f.rows=newRows(n); saveCart(); renderCart(); } });
 }
 
 /* ===== informed ticket =====
@@ -1421,6 +1619,7 @@ function go(p, scroll=true){
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
   $$('section.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));
   if(p==='backtest') runBacktest();
+  if(typeof renderCart==='function') renderCart();
   if(A11Y.auto && scroll) setTimeout(()=>{ const sec=$('#p-'+p); if(sec) say(pageSpeech(sec),sec.querySelector('.sec-head .say'),sec); },300);
   redrawCharts();
   history.replaceState(null,'','#'+p);
@@ -1487,7 +1686,7 @@ $('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ 
 
 /* ---------- boot ---------- */
 (async function boot(){
-  buildPickers(); loadUser(); setupA11y();
+  buildPickers(); loadUser(); setupA11y(); setupCart();
   try{ baseDraws = await fetchBase(); }
   catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
