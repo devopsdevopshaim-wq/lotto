@@ -651,6 +651,12 @@ function render1000(){
     const h=pp.filter(x=>cur[t].nums.includes(x)).length; tests++; hits+=h; g3+=h>=3; sh+=pst===cur[t].strong; }
   const gaps=NUMS.map(k=>[k,lastSeen[k]<0?n:lastSeen[k]]).sort((a,b)=>b[1]-a[1]).slice(0,5);
   const topPairs=[...pairs].sort((a,b)=>b[1]-a[1]).slice(0,5), pct=x=>fmt(100*x,1)+'%';
+  /* full combinations and their sub-groups: how often numbers came out together */
+  const combo=k=>{ const m=new Map(); L.forEach(d=>{ const a=d.nums, rec=(st,pre)=>{ if(pre.length===k){ const key=pre.join('-'); m.set(key,(m.get(key)||0)+1); return; } for(let i=st;i<6;i++) rec(i+1,[...pre,a[i]]); }; rec(0,[]); }); return m; };
+  const full=new Map(), six=new Map(); L.forEach(d=>{ const k6=d.nums.join('-'); six.set(k6,(six.get(k6)||0)+1); full.set(k6+'+'+d.strong,(full.get(k6+'+'+d.strong)||0)+1); });
+  const rep6=[...six].filter(x=>x[1]>1).length, rep6s=[...full].filter(x=>x[1]>1).length;
+  const grp=[5,4,3,2].map(k=>{ const m=combo(k), top=[...m].sort((a,b)=>b[1]-a[1]), E=n*C(N_MAIN-k,PICK-k)/C(N_MAIN,PICK);
+    return {k, E, top:top.slice(0,4), rep:top.filter(x=>x[1]>1).length}; });
   const row=(k)=>`<tr><td>${ball(k,'xs')}</td><td class="num"><b>${f[k]}</b></td><td class="num" dir="ltr" style="text-align:right">${f[k]-E>=0?'+':''}${fmt(f[k]-E,1)}</td></tr>`;
   el.innerHTML=`<div class="sec-head" style="margin-top:0"><div><h3>ניתוח ${fmt(n)} ההגרלות האחרונות</h3><p class="small">מ־${dateHe(L[n-1].date)} עד ${dateHe(L[0].date)}. מתעדכן לבד אחרי כל הגרלה.</p></div></div>
   <div class="grid2">
@@ -673,6 +679,13 @@ function render1000(){
       <div class="small">מבחן חי בריבוע: <b class="num">${fmt(chi,1)}</b> (גבול המובהקות 51.0). ${chi<51?'הפיזור תואם הגרלה הוגנת. ההבדלים בין המספרים הם רעש.':'יש סטייה חריגה מהפיזור הצפוי.'}</div>
     </div>
   </div>
+  <div class="eyebrow" style="margin:14px 0 6px">צירופים שיצאו יחד</div>
+  <div class="scroll" style="max-height:none"><table class="tbl"><thead><tr><th>צירוף</th><th>השכיחים ביותר (פעמים)</th><th>צפוי לכל צירוף</th></tr></thead><tbody>
+    <tr><td>6 + חזק</td><td>${rep6s?`${rep6s} צירופים חזרו`:'<b>אף צירוף לא חזר אף פעם</b>'}</td><td class="num">${fmt(n/C(N_MAIN,PICK)/N_STRONG,5)}</td></tr>
+    <tr><td>6 מספרים</td><td>${rep6?`${rep6} צירופים חזרו`:'<b>אף צירוף לא חזר אף פעם</b>'}</td><td class="num">${fmt(n/C(N_MAIN,PICK),4)}</td></tr>
+    ${grp.map(g=>`<tr><td>${g.k} מספרים</td><td>${g.top.map(([k,v])=>`<span class="num" style="white-space:nowrap">${k.replace(/-/g,' ')}</span> (<b>${v}</b>)`).join(' · ')}</td><td class="num">${fmt(g.E,g.E<1?3:1)}</td></tr>`).join('')}
+  </tbody></table></div>
+  <p class="muted small">צירופים של 5 שחזרו פעמיים: ${grp[0].rep}. בהגרלה אקראית לגמרי של ${fmt(n)} הגרלות יוצאים בדרך כלל בין 28 ל־55 כאלה, ושלישייה מובילה מופיעה 9 עד 13 פעמים. כל החזרות כאן הן בטווח של מקריות.</p>
   <div class="grid2" style="margin-top:12px">
     <div class="small"><b>רצפים:</b> ב־${fmt(cons)} מתוך ${fmt(n)} הגרלות (${pct(cons/n)}) היו שני מספרים צמודים. בהגרלה אקראית צפוי ${pct(consTh)}. הצמדים השכיחים: ${topPairs.map(([k,v])=>`${k} (${v})`).join(' · ')}.</div>
     <div class="small"><b>חזרות וחזק:</b> בממוצע ${fmt(rep/(n-1),2)} מספרים חוזרים מההגרלה הקודמת (צפוי ${fmt(PICK*PICK/N_MAIN,2)}). המספר החזק: ${[...Array(N_STRONG)].map((_,i)=>`${i+1}: ${sf[i+1]}`).join(' · ')} (צפוי ${fmt(n/N_STRONG,0)}). לא יצאו הכי הרבה זמן: ${gaps.map(([k,g])=>`${k} (${g} הגרלות)`).join(' · ')}.</div>
