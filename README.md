@@ -16,3 +16,13 @@ Site: https://devopsdevopshaim-wq.github.io/lotto/
 מספרי הזוכים לא מופיעים במקורות האלה, ולכן בהגרלות שנוספו אוטומטית העמודות האלה ריקות.
 
 גיבוי ידני: בעמוד "נתונים" אפשר לגרור קובץ CSV/Excel, להדביק שורות או להוסיף הגרלה.
+
+## הקראה בקול של הילה (Azure)
+
+ההקראה באתר משתמשת בהקלטות של הקול העצבי `he-IL-HilaNeural` של Microsoft Azure, כשהן קיימות.
+ה־workflow ‏`.github/workflows/voice.yml` רץ אחרי כל עדכון תוצאות: `scripts/voice_texts.mjs` פותח את האתר בדפדפן ושומר את טקסטי ההקראה ב־`voice/texts.json`,
+ו־`scripts/make_voice.py` מקליט רק טקסטים שהשתנו, שומר אותם כ־MP3 בתיקייה `voice/` ומעדכן את `voice/manifest.json`.
+טקסט שאין לו הקלטה (למשל הסל האישי) מוקרא בקול של המכשיר.
+
+הגדרה חד־פעמית: ב־Azure יוצרים משאב Speech (התוכנית החינמית F0 נותנת 500,000 תווים בחודש, והאתר משתמש בבערך 100,000),
+ומוסיפים למאגר שני סודות: `AZURE_SPEECH_KEY` (Key 1) ו־`AZURE_SPEECH_REGION` (למשל `westeurope`). אחר כך מריצים את ה־workflow פעם אחת מלשונית Actions.

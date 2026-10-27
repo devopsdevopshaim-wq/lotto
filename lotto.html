@@ -938,7 +938,7 @@ function applyA11y(){
   const r=$('#a11yRate'); if(r) r.value=A11Y.rate; const au=$('#a11yAuto'); if(au) au.checked=A11Y.auto;
 }
 const SAY_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 6.5c2.7 3 2.7 8 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
-let heVoice=null, sayBtn=null, sayEl=null;
+let heVoice=null, sayBtn=null, sayEl=null, VOICE_MAN=null, AUD=null;
 /* Voice choice: a Hebrew female voice, natural/neural ones first.
    Edge: "Microsoft Hila Online (Natural)" · Windows: "Microsoft Hila" · iPhone/Mac: "Carmit" · Android: Google Hebrew (female). */
 const FEMALE=/hila|carmit|google|female|אישה|נשי/i, MALE=/asaf|avri|male\b|גבר/i, NATURAL=/natural|neural|online|enhanced|premium|siri/i;
@@ -950,15 +950,24 @@ function pickVoice(){
   const list=heVoices().sort((a,b)=>voiceScore(b)-voiceScore(a)), saved=A11Y.voice;
   heVoice=list.find(v=>v.name===saved)||list[0]||null;
   const sel=$('#a11yVoiceSel');
-  if(sel){ sel.innerHTML=list.length? list.map((v,i)=>`<option value="${v.name.replace(/"/g,'&quot;')}"${v===heVoice?' selected':''}>${voiceLabel(v)}${i===0?' (מומלץ)':''}${MALE.test(v.name)?' · קול גבר':''}</option>`).join('') : '<option>אין קול עברי במכשיר</option>'; sel.disabled=!list.length; }
+  if(sel){ const az=VOICE_MAN?`<option value="azure"${useAzure()?' selected':''}>הילה · Azure, קול אנושי (מומלץ)</option>`:'';
+    sel.innerHTML=az+(list.length? list.map((v,i)=>`<option value="${v.name.replace(/"/g,'&quot;')}"${v===heVoice?' selected':''}>${voiceLabel(v)}${i===0&&!VOICE_MAN?' (מומלץ)':''}${MALE.test(v.name)?' · קול גבר':''}</option>`).join('') : (az?'':'<option>אין קול עברי במכשיר</option>')); sel.disabled=!list.length&&!az;
+    if(useAzure()) sel.value='azure'; }
   const note=$('#a11yVoice'); if(!note) return;
+  if(useAzure()){ note.textContent='מקריאה: הילה, קול אנושי מוקלט מראש (Microsoft Azure). חלקים אישיים, כמו הסל שלך, מוקראים בקול של המכשיר.'; return; }
   const natural=heVoice&&NATURAL.test(heVoice.name), female=heVoice&&!MALE.test(heVoice.name);
   note.textContent = !heVoice ? 'לא נמצא במכשיר קול בעברית. לקול הכי טבעי פתחו את האתר בדפדפן Edge (הקול "הילה"), או הוסיפו עברית בהגדרות הדיבור של הטלפון.'
     : natural&&female ? `מקריאה: ${voiceLabel(heVoice)}. זה הקול האנושי ביותר שיש במכשיר.`
     : `מקריאה: ${voiceLabel(heVoice)}. לקול אנושי יותר: בדפדפן Edge יש את הקול "הילה" הטבעי, ובאייפון אפשר להוריד את "כרמית (משופר)" בהגדרות › נגישות › תוכן מוקרא.`;
 }
 if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
-function stopSay(){ if('speechSynthesis' in window) speechSynthesis.cancel(); clearTimeout(say._t); if(sayBtn){ sayBtn.classList.remove('on'); sayBtn.setAttribute('aria-label',sayBtn.dataset.label); } if(sayEl) sayEl.classList.remove('reading'); sayBtn=sayEl=null; }
+/* Pre-recorded voice: voice/manifest.json maps a hash of each spoken text to an MP3 recorded with
+   Azure "he-IL-HilaNeural" (scripts/make_voice.py, run by .github/workflows/voice.yml after every draw).
+   Texts that were not recorded (a personal cart, another analysis range) fall back to the device voice. */
+function hashText(t){ let h=0x811c9dc5; for(const ch of t){ h^=ch.codePointAt(0); h=Math.imul(h,0x01000193)>>>0; } return h.toString(16).padStart(8,'0'); }
+async function loadVoiceManifest(){ try{ const r=await fetch('voice/manifest.json?t='+Date.now(),{cache:'no-store'}); if(r.ok){ const j=await r.json(); VOICE_MAN=j&&j.files&&Object.keys(j.files).length?j.files:null; } }catch(e){} pickVoice(); }
+function useAzure(){ return !!VOICE_MAN && (!A11Y.voice || A11Y.voice==='azure'); }
+function stopSay(){ if(AUD){ AUD.pause(); AUD.onended=AUD.onerror=null; AUD=null; } if('speechSynthesis' in window) speechSynthesis.cancel(); clearTimeout(say._t); if(sayBtn){ sayBtn.classList.remove('on'); sayBtn.setAttribute('aria-label',sayBtn.dataset.label); } if(sayEl) sayEl.classList.remove('reading'); sayBtn=sayEl=null; }
 
 /* Hebrew in words, so numbers and dates sound the way people say them */
 const HE_UNITS=['','אחת','שתיים','שלוש','ארבע','חמש','שש','שבע','שמונה','תשע'];
@@ -977,9 +986,21 @@ function cleanText(t){ return t.replace(/[•·|]/g,', ').replace(/(\d)\s*\n\s*(
 
 /* speak sentence by sentence with short breaths between them, like a person reading aloud */
 function say(text, btn, el){
-  if(!('speechSynthesis' in window)){ toast('הדפדפן הזה לא תומך בהקראה'); return; }
   const same = btn && sayBtn===btn; stopSay(); if(same) return;
-  const parts=(cleanText(text).match(/[^.!?]+[.!?]?/g)||[]).map(x=>x.trim()).filter(x=>x.length>1); if(!parts.length) return;
+  const clean=cleanText(text), file=useAzure() && VOICE_MAN[hashText(clean)];
+  if(file){
+    sayBtn=btn||null; sayEl=el||null; if(sayBtn){ sayBtn.classList.add('on'); sayBtn.setAttribute('aria-label','עצור הקראה'); } if(sayEl) sayEl.classList.add('reading');
+    const a=AUD=new Audio('voice/'+file); a.playbackRate=Math.max(.6,Math.min(1.6,A11Y.rate/0.95)); a.preservesPitch=true;
+    a.onended=()=>{ if(AUD===a) stopSay(); };
+    a.onerror=()=>{ if(AUD!==a) return; AUD=null; const b=sayBtn, e=sayEl; sayBtn=sayEl=null; sayDevice(clean,b,e); };
+    a.play().catch(()=>{ if(AUD!==a) return; AUD=null; const b=sayBtn, e=sayEl; sayBtn=sayEl=null; sayDevice(clean,b,e); });
+    return;
+  }
+  sayDevice(clean,btn,el);
+}
+function sayDevice(clean, btn, el){
+  if(!('speechSynthesis' in window)){ toast('הדפדפן הזה לא תומך בהקראה'); return; }
+  const parts=(clean.match(/[^.!?]+[.!?]?/g)||[]).map(x=>x.trim()).filter(x=>x.length>1); if(!parts.length) return;
   if(!heVoice) pickVoice();
   sayBtn=btn||null; sayEl=el||null; if(sayBtn){ sayBtn.classList.add('on'); sayBtn.setAttribute('aria-label','עצור הקראה'); } if(sayEl) sayEl.classList.add('reading');
   let i=0; const owner=btn;
@@ -991,6 +1012,8 @@ function say(text, btn, el){
   next();
 }
 
+const VOICE_PICKED='שלום, זה הקול שבחרת. ככה אקריא לך את הטופס.';
+const sampleSpeech=()=>SMART?`שלום! ${ticketSpeech(SMART,'הנה הטופס המושכל להגרלה הקרובה')} בהצלחה.`:'שלום, ככה נשמעת ההקראה באתר.';
 /* spoken scripts: written for the ear, short sentences, numbers in words */
 const ticketSpeech=(t,title)=>`${title}: ${heList(t.nums)}, והמספר החזק ${heNum(t.strong)}.`;
 function speakSlip(){ if(!SMART) return ''; const id=cur[0].id+1;
@@ -1057,8 +1080,8 @@ function setupA11y(){
     if(a==='reset') Object.assign(A11Y,{fs:1,hc:false,motion:false,links:false,rate:0.95,auto:false,voice:''});
     saveA11y(); applyA11y(); });
   $('#a11yRate').addEventListener('input',e=>{ A11Y.rate=+e.target.value; saveA11y(); });
-  $('#a11yVoiceSel').addEventListener('change',e=>{ A11Y.voice=e.target.value; saveA11y(); pickVoice(); say('שלום, זה הקול שבחרת. ככה אקריא לך את הטופס.'); });
-  $('#a11yTest').addEventListener('click',()=>say(SMART?`שלום! ${ticketSpeech(SMART,'הנה הטופס המושכל להגרלה הקרובה')} בהצלחה.`:'שלום, ככה נשמעת ההקראה באתר.'));
+  $('#a11yVoiceSel').addEventListener('change',e=>{ A11Y.voice=e.target.value; saveA11y(); pickVoice(); say(VOICE_PICKED); });
+  $('#a11yTest').addEventListener('click',()=>say(sampleSpeech()));
   $('#a11yAuto').addEventListener('change',e=>{ A11Y.auto=e.target.checked; saveA11y(); });
 }
 
@@ -1860,13 +1883,24 @@ $('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ 
   try{ baseDraws = await fetchBase(); }
   catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
+  if(/[?&]voicegen\b/.test(location.search)){ await voiceGen(); return; }
   go(location.hash.slice(1)||'predict',false); setTimeout(moveTabInk,400);
+  loadVoiceManifest();
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(moveTabInk);
   /* keep an open tab current: re-check lotto.csv every 10 minutes and whenever the tab comes back into view */
   setInterval(refreshBase, 6e5);
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshBase(); });
   window.addEventListener('focus', refreshBase);
 })();
+async function voiceGen(){
+  const out={}, add=(k,t)=>{ if(!t) return; const c=cleanText(t); if(c) out[k]={text:c,hash:hashText(c)}; };
+  add('slip',speakSlip()); add('score',speakScore()); add('diag',speakDiag()); add('next',speakNext()); add('last',speakLast());
+  add('ticket',SMART&&ticketSpeech(SMART,'הטופס המושכל להגרלה הקרובה')); add('home',[speakNext(), speakSlip(), speakScore()].join('\n'));
+  add('sample',sampleSpeech()); add('picked',VOICE_PICKED);
+  for(const sec of $$('section.page')){ const id=sec.id.slice(2); if(id==='cart'||id==='data') continue; go(id,false); await new Promise(r=>setTimeout(r,120)); add('page-'+id,pageSpeech(sec)); }
+  go('predict',false); add('k1000',speak1000());
+  const pre=document.createElement('pre'); pre.id='voicegen'; pre.hidden=true; pre.textContent=JSON.stringify(out); document.body.appendChild(pre);
+}
 async function fetchBase(){
   const r = await fetch('lotto.csv?t='+Date.now(),{cache:'no-store'});
   if(!r.ok) throw new Error('HTTP '+r.status);
@@ -1879,7 +1913,7 @@ async function refreshBase(){
     const fresh = await fetchBase();
     const top = d => d.length ? d[0].id+'|'+d[0].date : '';
     if(fresh.length && (fresh.length!==baseDraws.length || top(fresh)!==top(baseDraws))){
-      baseDraws = fresh; renderAll(); toast('נוספו תוצאות חדשות');
+      baseDraws = fresh; renderAll(); toast('נוספו תוצאות חדשות'); setTimeout(loadVoiceManifest,5*60e3);
     }
   }catch(e){ console.warn('refresh failed', e); }
   finally{ refreshBase.busy=false; }

@@ -1,0 +1,71 @@
+name: Record voice (Azure Hila)
+
+# After every results update (and whenever the page changes), record the read-aloud texts with
+# Azure's he-IL-HilaNeural voice. Needs the repository secrets AZURE_SPEECH_KEY and AZURE_SPEECH_REGION;
+# without them the job only warns and the site keeps using the device voice.
+on:
+  workflow_run:
+    workflows: ["Update lotto results"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths: ['lotto.html', 'scripts/voice_texts.mjs', 'scripts/make_voice.py', '.github/workflows/voice.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: voice
+  cancel-in-progress: false
+
+jobs:
+  record:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check the Azure secrets
+        id: key
+        env:
+          KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+        run: |
+          if [ -z "$KEY" ] || [ -z "$REGION" ]; then
+            echo "::warning::AZURE_SPEECH_KEY / AZURE_SPEECH_REGION are not set, so no recording was made."
+            echo "ok=0" >> "$GITHUB_OUTPUT"
+          else
+            echo "ok=1" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v4
+        if: steps.key.outputs.ok == '1'
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        if: steps.key.outputs.ok == '1'
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        if: steps.key.outputs.ok == '1'
+        with:
+          python-version: '3.12'
+      - name: Collect the texts from the page
+        if: steps.key.outputs.ok == '1'
+        run: |
+          npm i --no-save --no-package-lock playwright-core@1.49.1
+          node scripts/voice_texts.mjs
+      - name: Record with Azure
+        if: steps.key.outputs.ok == '1'
+        env:
+          AZURE_SPEECH_KEY: ${{ secrets.AZURE_SPEECH_KEY }}
+          AZURE_SPEECH_REGION: ${{ secrets.AZURE_SPEECH_REGION }}
+        run: python scripts/make_voice.py
+      - name: Commit the recordings
+        if: steps.key.outputs.ok == '1'
+        run: |
+          git add -A voice
+          if git diff --cached --quiet; then echo "No changes."; exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898+github-actions[bot]@users.noreply.github.com"
+          git commit -m "voice: record read-aloud texts"
+          for i in 1 2 3; do git pull --rebase origin main && git push && exit 0; sleep 5; done
+          exit 1
