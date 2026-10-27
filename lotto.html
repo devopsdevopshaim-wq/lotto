@@ -251,6 +251,7 @@ details summary{cursor:pointer;font-weight:700}
   <!-- PREDICT -->
   <section class="page on" id="p-predict">
     <div class="sec-head"><div><h2>מנוע התחזיות</h2><p>כל מספר מקבל ציון משוקלל משישה אותות סטטיסטיים. בחרו מודל מוכן או כוונו משקלים בעצמכם. לכל מודל מוצג גם מה הוא היה חוזה בהגרלות האחרונות ומה יצא בפועל.</p></div></div>
+    <div class="card" id="k1000" style="margin-bottom:16px"></div>
     <div class="grid2">
       <div class="card stack">
         <div><div class="eyebrow" style="margin-bottom:6px">מודל</div>
@@ -624,9 +625,58 @@ let ST = null;
 function renderAll(){
   rebuild();
   ST = stats(view);
-  renderHero(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
+  renderHero(); render1000(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
   if($('#p-backtest.on')) runBacktest();
   renderCheck();
+}
+/* last-1000 report: recomputed from the data on every load and every new draw */
+function render1000(){
+  const el=$('#k1000'); if(!el) return;
+  const L=cur.slice(0,1000), n=L.length; if(n<200){ el.innerHTML=''; return; }
+  const f=Array(N_MAIN+1).fill(0), sf=Array(N_STRONG+1).fill(0), pairs=new Map(), lastSeen=Array(N_MAIN+1).fill(-1);
+  let cons=0, rep=0;
+  L.forEach((d,i)=>{ d.nums.forEach(x=>{ f[x]++; if(lastSeen[x]<0) lastSeen[x]=i; }); sf[d.strong]++;
+    let c=false; for(let j=0;j<5;j++) if(d.nums[j+1]-d.nums[j]===1){ c=true; const k=d.nums[j]+'–'+d.nums[j+1]; pairs.set(k,(pairs.get(k)||0)+1); }
+    cons+=c; if(i<n-1) rep+=d.nums.filter(x=>L[i+1].nums.includes(x)).length; });
+  const E=n*PICK/N_MAIN, chi=NUMS.reduce((a,k)=>a+(f[k]-E)**2/E,0);
+  const order=NUMS.slice().sort((a,b)=>f[b]-f[a]||a-b), sOrder=[...Array(N_STRONG)].map((_,i)=>i+1).sort((a,b)=>sf[b]-sf[a]||a-b);
+  const pick=order.slice(0,PICK).sort((a,b)=>a-b), ps=sOrder[0];
+  const consTh=1-C(N_MAIN-PICK+1,PICK)/C(N_MAIN,PICK);
+  /* walk-forward: the same rule, applied before each past draw with only the 1000 draws before it */
+  let tests=0, hits=0, g3=0, sh=0;
+  const W=1000, maxT=Math.min(400, cur.length-W);
+  for(let t=0;t<maxT;t++){ const ff=Array(N_MAIN+1).fill(0), ss=Array(N_STRONG+1).fill(0);
+    for(let j=t+1;j<=t+W;j++){ cur[j].nums.forEach(x=>ff[x]++); ss[cur[j].strong]++; }
+    const pp=NUMS.slice().sort((a,b)=>ff[b]-ff[a]||a-b).slice(0,PICK), pst=[...Array(N_STRONG)].map((_,i)=>i+1).sort((a,b)=>ss[b]-ss[a]||a-b)[0];
+    const h=pp.filter(x=>cur[t].nums.includes(x)).length; tests++; hits+=h; g3+=h>=3; sh+=pst===cur[t].strong; }
+  const gaps=NUMS.map(k=>[k,lastSeen[k]<0?n:lastSeen[k]]).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const topPairs=[...pairs].sort((a,b)=>b[1]-a[1]).slice(0,5), pct=x=>fmt(100*x,1)+'%';
+  const row=(k)=>`<tr><td>${ball(k,'xs')}</td><td class="num"><b>${f[k]}</b></td><td class="num" dir="ltr" style="text-align:right">${f[k]-E>=0?'+':''}${fmt(f[k]-E,1)}</td></tr>`;
+  el.innerHTML=`<div class="sec-head" style="margin-top:0"><div><h3>ניתוח ${fmt(n)} ההגרלות האחרונות</h3><p class="small">מ־${dateHe(L[n-1].date)} עד ${dateHe(L[0].date)}. מתעדכן לבד אחרי כל הגרלה.</p></div></div>
+  <div class="grid2">
+    <div class="stack">
+      <div class="eyebrow">הטופס של ${fmt(n)} ההגרלות: 6 המספרים שיצאו הכי הרבה + החזק השכיח</div>
+      <div class="balls start">${pick.map(k=>ball(k,'sm')).join('')}<span class="plus">+</span>${sball(ps,'sm')}</div>
+      <table class="tbl"><tbody>
+        <tr><td>כמה מה־6 צפויים לעלות בהגרלה הבאה</td><td class="num"><b>${fmt(PICK*PICK/N_MAIN,2)}</b> בממוצע</td></tr>
+        <tr><td>סיכוי ל־3 מספרים ומעלה</td><td class="num"><b>${pct(p3plus())}</b></td></tr>
+        <tr><td>סיכוי שהמספר החזק יעלה</td><td class="num"><b>${pct(1/N_STRONG)}</b></td></tr>
+        <tr><td>סיכוי לכל 6 + החזק</td><td class="num" style="white-space:nowrap">1 ל־${fmt(C(N_MAIN,PICK)*N_STRONG)}</td></tr>
+        <tr><td>בדיקה לאחור: אותה שיטה ב־${fmt(tests)} ההגרלות האחרונות</td><td class="num">${fmt(hits/(tests||1),2)} פגיעות, ${g3} פעמים 3+, חזק ${pct(sh/(tests||1))}</td></tr>
+      </tbody></table>
+      <p class="muted small">בבחירה אקראית: ${fmt(PICK*PICK/N_MAIN,2)} פגיעות, כ־${fmt(tests*p3plus(),0)} פעמים 3+, חזק ${pct(1/N_STRONG)}. אם השורה של הבדיקה לאחור דומה לזו, השיטה לא נותנת יתרון.</p>
+    </div>
+    <div class="stack">
+      <div class="eyebrow">יצאו הכי הרבה (צפוי ${fmt(E,1)} לכל מספר)</div>
+      <table class="tbl"><thead><tr><th>מספר</th><th>פעמים</th><th>מול הצפוי</th></tr></thead><tbody>${order.slice(0,8).map(row).join('')}</tbody></table>
+      <div class="small muted">הכי מעט: ${order.slice(-5).reverse().map(k=>`${k} (${f[k]})`).join(' · ')}</div>
+      <div class="small">מבחן חי בריבוע: <b class="num">${fmt(chi,1)}</b> (גבול המובהקות 51.0). ${chi<51?'הפיזור תואם הגרלה הוגנת. ההבדלים בין המספרים הם רעש.':'יש סטייה חריגה מהפיזור הצפוי.'}</div>
+    </div>
+  </div>
+  <div class="grid2" style="margin-top:12px">
+    <div class="small"><b>רצפים:</b> ב־${fmt(cons)} מתוך ${fmt(n)} הגרלות (${pct(cons/n)}) היו שני מספרים צמודים. בהגרלה אקראית צפוי ${pct(consTh)}. הצמדים השכיחים: ${topPairs.map(([k,v])=>`${k} (${v})`).join(' · ')}.</div>
+    <div class="small"><b>חזרות וחזק:</b> בממוצע ${fmt(rep/(n-1),2)} מספרים חוזרים מההגרלה הקודמת (צפוי ${fmt(PICK*PICK/N_MAIN,2)}). המספר החזק: ${[...Array(N_STRONG)].map((_,i)=>`${i+1}: ${sf[i+1]}`).join(' · ')} (צפוי ${fmt(n/N_STRONG,0)}). לא יצאו הכי הרבה זמן: ${gaps.map(([k,g])=>`${k} (${g} הגרלות)`).join(' · ')}.</div>
+  </div>`;
 }
 function renderHero(){
   $('#kOdds').textContent = '1 : ' + fmt(C(N_MAIN,PICK)*N_STRONG);
