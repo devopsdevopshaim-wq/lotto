@@ -7,49 +7,53 @@
 <meta name="description" content="ניתוח סטטיסטי מלא של תוצאות הלוטו בישראל: שכיחויות, פערים, זוגות, התפלגויות, בדיקה לאחור ומחולל טפסים.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&family=Rubik:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;700&family=Karantina:wght@400;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#f4f1ea; --surface:#fffdf8; --surface-2:#f0ebe0; --line:#e2dccd;
-  --ink:#1b1a17; --muted:#6c675c; --accent:#b8401f; --accent-ink:#fff;
-  --gold:#c9962b; --good:#2f7d4f; --bad:#b33a2b; --cool:#2d6a9f;
-  --ball:#fffaf0; --ball-ink:#1b1a17; --strong:#c0392b;
-  --shadow:0 1px 2px rgba(40,30,10,.06),0 6px 24px rgba(40,30,10,.06);
-  --r:16px;
+  --bg:#eef2f8; --surface:#ffffff; --surface-2:#f2f5fa; --line:#d7deeb;
+  --ink:#161a23; --muted:#5d6577; --accent:#2340c8; --accent-ink:#fff;
+  --print:#d52b3a; --pen:#2340c8; --paper:#f5f7fb;
+  --gold:#b7861c; --good:#128a5c; --bad:#c22f3c; --cool:#2d6a9f;
+  --ball:#ffffff; --ball-ink:#161a23; --strong:#d52b3a;
+  --shadow:0 1px 0 rgba(22,26,35,.04),0 10px 30px -12px rgba(35,64,200,.18);
+  --r:14px;
+  --display:Karantina,'IBM Plex Sans Hebrew',sans-serif;
 }
 @media (prefers-color-scheme: dark){
   :root:not([data-theme="light"]){
-    --bg:#121210; --surface:#1b1b18; --surface-2:#24231f; --line:#33312b;
-    --ink:#f1ece0; --muted:#a39d8f; --accent:#e2683f; --accent-ink:#1b1a17;
-    --gold:#e0b453; --good:#5fbf86; --bad:#ef7462; --cool:#6aa8de;
-    --ball:#f6efdf; --ball-ink:#1b1a17; --strong:#e0533f;
-    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.25);
+    --bg:#0b1020; --surface:#131a2d; --surface-2:#1a2238; --line:#2a3452;
+    --ink:#eef1f8; --muted:#9aa4bd; --accent:#8798ff; --accent-ink:#0b1020;
+    --print:#ff5d69; --pen:#8798ff; --paper:#151d33;
+    --gold:#e3b54e; --good:#3fcf93; --bad:#ff6b76; --cool:#6aa8de;
+    --ball:#f3f5fb; --ball-ink:#161a23; --strong:#ff4d5c;
+    --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 32px -14px rgba(0,0,0,.6);
   }
 }
 :root[data-theme="dark"]{
-  --bg:#121210; --surface:#1b1b18; --surface-2:#24231f; --line:#33312b;
-  --ink:#f1ece0; --muted:#a39d8f; --accent:#e2683f; --accent-ink:#1b1a17;
-  --gold:#e0b453; --good:#5fbf86; --bad:#ef7462; --cool:#6aa8de;
-  --ball:#f6efdf; --ball-ink:#1b1a17; --strong:#e0533f;
-  --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 30px rgba(0,0,0,.25);
+  --bg:#0b1020; --surface:#131a2d; --surface-2:#1a2238; --line:#2a3452;
+  --ink:#eef1f8; --muted:#9aa4bd; --accent:#8798ff; --accent-ink:#0b1020;
+  --print:#ff5d69; --pen:#8798ff; --paper:#151d33;
+  --gold:#e3b54e; --good:#3fcf93; --bad:#ff6b76; --cool:#6aa8de;
+  --ball:#f3f5fb; --ball-ink:#161a23; --strong:#ff4d5c;
+  --shadow:0 1px 0 rgba(0,0,0,.3),0 12px 32px -14px rgba(0,0,0,.6);
 }
 *{box-sizing:border-box}
 html,body{margin:0}
-body{background:var(--bg);color:var(--ink);font-family:Heebo,system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+body{background:var(--bg);color:var(--ink);font-family:'IBM Plex Sans Hebrew',system-ui,sans-serif;font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
 .wrap{max-width:1180px;margin:0 auto;padding:0 16px}
-h1,h2,h3{font-family:Rubik,Heebo,sans-serif;margin:0;line-height:1.2}
-h2{font-size:22px}
+h1,h2,h3{font-family:'IBM Plex Sans Hebrew',sans-serif;margin:0;line-height:1.2}
+h2{font-family:var(--display);font-weight:700;font-size:34px;line-height:1;letter-spacing:.01em}
 h3{font-size:16px}
 a{color:var(--accent)}
 .muted{color:var(--muted)}
 .small{font-size:13px}
-.num{font-family:Rubik,sans-serif;font-variant-numeric:tabular-nums}
+.num{font-family:'IBM Plex Sans Hebrew',sans-serif;font-variant-numeric:tabular-nums}
 
 /* header */
 .top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line)}
 .top .wrap{display:flex;align-items:center;gap:14px;height:60px}
-.brand{display:flex;align-items:center;gap:10px;font-family:Rubik;font-weight:800;font-size:18px;white-space:nowrap}
-.brand .dot{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 18%,var(--accent) 19%);box-shadow:inset 0 -3px 6px rgba(0,0,0,.2);flex:none}
+.brand{display:flex;align-items:center;gap:10px;font-family:var(--display);font-weight:700;font-size:26px;letter-spacing:.02em;white-space:nowrap}
+.brand .dot{width:28px;height:28px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#fff 0 18%,var(--print) 19%);box-shadow:inset 0 -3px 6px rgba(0,0,0,.2);flex:none}
 @media (max-width:640px){.brand span:last-child{display:none}}
 nav.tabs{display:flex;gap:4px;overflow-x:auto;scrollbar-width:none;flex:1}
 nav.tabs::-webkit-scrollbar{display:none}
@@ -68,20 +72,20 @@ nav.tabs button.on{color:var(--ink);background:var(--surface);box-shadow:var(--s
 .eyebrow{font-size:12px;letter-spacing:.06em;color:var(--muted);font-weight:700}
 .balls{display:flex;gap:8px;flex-wrap:wrap;align-items:center;direction:ltr;justify-content:flex-end}
 .balls.start{justify-content:flex-start}
-.ball{--s:46px;width:var(--s);height:var(--s);border-radius:50%;display:grid;place-items:center;font-family:Rubik;font-weight:700;font-size:calc(var(--s)*.4);color:var(--ball-ink);
-  background:radial-gradient(circle at 34% 28%,#fff 0 12%,var(--ball) 40%,color-mix(in srgb,var(--ball) 70%,#b9ab8c) 100%);
+.ball{--s:46px;width:var(--s);height:var(--s);border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:calc(var(--s)*.56);line-height:1;padding-top:.08em;color:var(--ball-ink);
+  background:radial-gradient(circle at 34% 28%,#fff 0 14%,var(--ball) 45%,#dfe5f1 100%);
   box-shadow:inset 0 -3px 6px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.12);border:2px solid var(--ring,transparent);flex:none}
 .lastdraw .ball{--s:52px}
 @media (max-width:480px){.lastdraw .ball{--s:36px}.balls{gap:5px}.ball.sm{--s:30px}.card{padding:14px}.ticket{padding:9px}}
 .ball.sm{--s:34px}
 .ball.xs{--s:26px;border-width:1.5px;box-shadow:inset 0 -2px 4px rgba(0,0,0,.1)}
-.ball.strong{background:radial-gradient(circle at 34% 28%,#ff9d8c 0 12%,var(--strong) 45%,#7d1d12 100%);color:#fff;border-color:transparent}
+.ball.strong{background:radial-gradient(circle at 34% 28%,#ff9aa2 0 12%,var(--strong) 46%,#7a1220 100%);color:#fff;border-color:transparent}
 .ball.hit{outline:3px solid var(--good);outline-offset:1px}
 .ball.d1{--ring:#d9a441}.ball.d2{--ring:#4c8dc4}.ball.d3{--ring:#4fa36b}.ball.d4{--ring:#a463b8}
-.plus{font-family:Rubik;color:var(--muted);font-weight:700}
+.plus{font-family:var(--display);color:var(--muted);font-weight:700}
 .kpis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
 .kpi{background:var(--surface-2);border-radius:12px;padding:12px;min-width:0}
-.kpi b{display:block;font-family:Rubik;font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.kpi b{display:block;font-family:var(--display);font-size:21px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .kpi span{font-size:12.5px;color:var(--muted)}
 .banner{display:flex;gap:12px;align-items:flex-start;border-radius:12px;padding:12px 14px;margin-top:16px;background:color-mix(in srgb,var(--gold) 16%,var(--surface));border:1px solid color-mix(in srgb,var(--gold) 45%,transparent)}
 .banner.ok{background:color-mix(in srgb,var(--good) 12%,var(--surface));border-color:color-mix(in srgb,var(--good) 40%,transparent)}
@@ -111,7 +115,7 @@ select,input[type=number],input[type=date],input[type=text]{font:inherit;color:v
 /* heat grid */
 .heat{display:grid;grid-template-columns:repeat(auto-fill,minmax(70px,1fr));gap:8px;direction:ltr}
 .cell{border-radius:12px;padding:8px 4px;text-align:center;border:1px solid var(--line);background:var(--c,var(--surface-2))}
-.cell .n{font-family:Rubik;font-weight:800;font-size:20px}
+.cell .n{font-family:var(--display);font-weight:800;font-size:20px}
 .cell .f{font-size:12px}
 .cell .z{font-size:11.5px;font-weight:700;opacity:.8}
 .legend{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--muted);flex-wrap:wrap}
@@ -135,7 +139,7 @@ select,input[type=number],input[type=date],input[type=text]{font:inherit;color:v
 /* charts */
 .chartbox{direction:ltr}
 svg.chart{width:100%;height:auto;display:block;overflow:visible}
-svg.chart text{fill:var(--muted);font-size:11px;font-family:Heebo,sans-serif}
+svg.chart text{fill:var(--muted);font-size:11px;font-family:'IBM Plex Sans Hebrew',sans-serif}
 svg.chart .axis{stroke:var(--line)}
 svg.chart .b{fill:var(--accent);opacity:.82}
 svg.chart .b2{fill:var(--cool);opacity:.82}
@@ -145,7 +149,7 @@ svg.chart .curve{stroke:var(--ink);stroke-width:2;fill:none;opacity:.7}
 
 /* verdict */
 .verdict{display:flex;gap:16px;align-items:center}
-.gauge{flex:none;width:88px;height:88px;border-radius:50%;display:grid;place-items:center;font-family:Rubik;font-weight:800;font-size:18px;
+.gauge{flex:none;width:88px;height:88px;border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:800;font-size:18px;
   background:conic-gradient(var(--good) calc(var(--p)*1%),var(--surface-2) 0);position:relative}
 .gauge::before{content:"";position:absolute;inset:9px;border-radius:50%;background:var(--surface)}
 .gauge span{position:relative}
@@ -155,7 +159,7 @@ svg.chart .curve{stroke:var(--ink);stroke-width:2;fill:none;opacity:.7}
 .ticket{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;background:var(--surface-2);border-radius:12px;padding:10px 12px}
 .ticket .tags{display:flex;gap:6px;flex-wrap:wrap}
 .picker{display:grid;grid-template-columns:repeat(auto-fill,minmax(40px,1fr));gap:6px;direction:ltr}
-.picker button{aspect-ratio:1;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:Rubik;font-weight:700;cursor:pointer;font-size:14px;padding:0}
+.picker button{aspect-ratio:1;border-radius:50%;border:1px solid var(--line);background:var(--surface);color:var(--ink);font-family:var(--display);font-weight:700;cursor:pointer;font-size:14px;padding:0}
 .picker button.on{background:var(--ink);color:var(--surface);border-color:var(--ink)}
 .picker.strongs{grid-template-columns:repeat(7,minmax(0,48px))}
 .picker.strongs button.on{background:var(--strong);border-color:var(--strong);color:#fff}
@@ -163,7 +167,7 @@ svg.chart .curve{stroke:var(--ink);stroke-width:2;fill:none;opacity:.7}
 /* drop zone */
 .drop{display:block;border:2px dashed var(--line);border-radius:var(--r);padding:26px;text-align:center;background:var(--surface);cursor:pointer;transition:.15s}
 .drop.over{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--surface))}
-.drop b{font-family:Rubik;font-size:17px}
+.drop b{font-family:var(--display);font-size:17px}
 .formrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 .formrow input[type=number]{width:62px}
 .toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%) translateY(20px);background:var(--ink);color:var(--surface);padding:10px 18px;border-radius:12px;font-weight:700;opacity:0;transition:.25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px)}
@@ -171,7 +175,7 @@ svg.chart .curve{stroke:var(--ink);stroke-width:2;fill:none;opacity:.7}
 footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--muted);font-size:13px}
 .tip{position:fixed;pointer-events:none;background:var(--ink);color:var(--surface);font-size:12.5px;padding:6px 9px;border-radius:8px;z-index:60;opacity:0;transition:opacity .1s;white-space:nowrap}
 
-.nextdraw{background:linear-gradient(160deg,color-mix(in srgb,var(--accent) 10%,var(--surface)),var(--surface) 60%)}
+.nextdraw{border-top:3px solid var(--print)}
 .nextdraw .meta,.lastdraw .meta{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px}
 .countdown{font-size:15px;font-weight:700;background:var(--surface-2);border-radius:10px;padding:6px 10px;white-space:nowrap;align-self:flex-start}
 .rangebar{display:flex;gap:18px;align-items:center;flex-wrap:wrap;justify-content:space-between}
@@ -179,12 +183,60 @@ footer{border-top:1px solid var(--line);padding:22px 0 40px;color:var(--muted);f
 @media (max-width:860px){.kpis4{grid-template-columns:repeat(2,1fr)}}
 .rank{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .rk{display:flex;align-items:center;gap:8px;background:var(--surface-2);border-radius:12px;padding:7px 9px}
-.rk .pos{font-size:11px;color:var(--muted);width:22px;text-align:center;font-family:Rubik}
+.rk .pos{font-size:11px;color:var(--muted);width:22px;text-align:center;font-family:var(--display)}
 .rk .bar{flex:1}
 .rk.top{outline:2px solid var(--accent);outline-offset:-2px}
 .wrow{display:grid;grid-template-columns:150px 1fr 36px;gap:10px;align-items:center}
 .wrow input{width:100%;accent-color:var(--accent)}
 details summary{cursor:pointer;font-weight:700}
+
+/* ===== informed ticket: the lottery slip ===== */
+.slipwrap{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:16px;margin-top:4px}
+@media (max-width:900px){.slipwrap{grid-template-columns:1fr}}
+.slip{position:relative;background:var(--paper);border:1px solid var(--line);border-radius:6px 6px 14px 14px;padding:18px 18px 16px;box-shadow:var(--shadow);overflow:hidden}
+.slip::before{content:"";position:absolute;inset:0 0 auto 0;height:8px;background:repeating-linear-gradient(90deg,var(--print) 0 14px,transparent 14px 22px);opacity:.9}
+.slip-head{display:flex;justify-content:space-between;align-items:flex-end;gap:10px;flex-wrap:wrap;margin:6px 0 12px;border-bottom:1.5px solid var(--print);padding-bottom:10px}
+.slip-head h2{font-size:46px;color:var(--print)}
+.slip-head .for{font-size:13px;color:var(--muted)}
+.slip-head .for b{color:var(--ink)}
+.slip-label{font-size:12px;font-weight:700;color:var(--print);letter-spacing:.04em;margin:0 0 6px}
+.sgrid{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;direction:ltr}
+.sgrid.s7{grid-template-columns:repeat(7,minmax(0,1fr));width:calc(70% - 1.2px)}
+.sc{position:relative;aspect-ratio:1/.82;border:1px solid color-mix(in srgb,var(--print) 45%,transparent);border-radius:3px;display:grid;place-items:center;font-family:var(--display);font-size:clamp(18px,3.2vw,26px);line-height:1;color:color-mix(in srgb,var(--print) 85%,var(--ink));background:var(--surface)}
+.sc.on{color:var(--ink);font-weight:700;background:color-mix(in srgb,var(--pen) 9%,var(--surface))}
+.sc svg{position:absolute;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);pointer-events:none;overflow:visible}
+.sc svg path{fill:none;stroke:var(--pen);stroke-width:2.4;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:pen .55s cubic-bezier(.4,.1,.3,1) forwards;animation-delay:var(--d)}
+@keyframes pen{to{stroke-dashoffset:0}}
+@media (prefers-reduced-motion:reduce){.sc svg path{animation:none;stroke-dashoffset:0}}
+.slip-foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:14px}
+.slip-why{margin:12px 0 0;padding:0;list-style:none;font-size:13.5px;color:var(--muted)}
+.slip-why li{padding:3px 0}
+.slip-why b{color:var(--ink)}
+.score h3{font-family:var(--display);font-size:30px;font-weight:700;line-height:1}
+.tally{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}
+.tally div{background:var(--surface-2);border-radius:10px;padding:10px}
+.tally b{display:block;font-family:var(--display);font-size:34px;line-height:1}
+.tally span{font-size:12px;color:var(--muted)}
+.tally em{font-style:normal;font-size:12px;color:var(--muted);display:block}
+.hrow{display:grid;grid-template-columns:62px minmax(0,1fr) 42px;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.hrow:last-child{border-bottom:0}
+.hrow .balls{flex-wrap:nowrap;gap:3px}
+.hrow .ball.xs{--s:24px}
+.hrow .h{direction:ltr;font-family:var(--display);font-size:24px;text-align:center;line-height:1}
+.hrow .h.z{color:var(--muted)}
+.hrow .h.g{color:var(--good)}
+.hrows{max-height:420px;overflow:auto;padding-inline-end:4px}
+.diag{margin-top:16px}
+.diag h3{font-family:var(--display);font-size:32px;font-weight:700;line-height:1;margin-bottom:4px}
+.dx{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:12px}
+@media (max-width:900px){.dx{grid-template-columns:1fr}}
+.dx article{border:1px solid var(--line);border-radius:12px;padding:14px;background:var(--surface)}
+.dx dl{margin:0;font-size:13.5px}
+.dx dt{font-size:11.5px;font-weight:700;letter-spacing:.05em;color:var(--print);margin-top:8px}
+.dx dt:first-child{margin-top:0}
+.dx dd{margin:2px 0 0}
+.dx .fig{font-family:var(--display);font-size:30px;line-height:1;color:var(--ink)}
+:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
 </style>
 </head>
 <body>
@@ -208,6 +260,11 @@ details summary{cursor:pointer;font-weight:700}
 </header>
 
 <main class="wrap">
+  <section class="slipwrap" id="smart" aria-label="הטופס המושכל">
+    <div class="slip" id="slip"><div class="muted">טוען נתונים…</div></div>
+    <div class="card score" id="score"></div>
+  </section>
+  <section class="card diag" id="diag" aria-label="אבחון הניחוש"></section>
   <div class="hero" id="hero">
     <div class="hero-grid">
       <div class="card nextdraw">
@@ -625,10 +682,87 @@ let ST = null;
 function renderAll(){
   rebuild();
   ST = stats(view);
-  renderHero(); render1000(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
+  renderSmart(); renderHero(); render1000(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
   if($('#p-backtest.on')) runBacktest();
   renderCheck();
 }
+/* ===== informed ticket =====
+   One ticket per draw, fixed for that draw: seeded by the draw number so it never changes after the fact
+   and can be scored honestly. Mild lean to numbers drawn more often in the previous 1000 draws, then
+   filtered to avoid combinations many people play (smaller share if it wins) and to differ from the last draw. */
+function seeded(seed){ let a=seed>>>0; return ()=>{ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+function smartTicket(hist, id){
+  const W=hist.slice(0,1000), n=W.length; if(n<200) return null;
+  const f=Array(N_MAIN+1).fill(0), sf=Array(N_STRONG+1).fill(0);
+  W.forEach(d=>{ d.nums.forEach(x=>f[x]++); sf[d.strong]++; });
+  const E=n*PICK/N_MAIN, sd=Math.sqrt(E*(1-PICK/N_MAIN)), Es=n/N_STRONG, sds=Math.sqrt(Es*(1-1/N_STRONG));
+  const w=f.map((v,k)=>k?Math.exp(.25*(v-E)/sd):0), sw=sf.map((v,k)=>k?Math.exp(.25*(v-Es)/sds):0);
+  const r=seeded(id*2654435761), drawn=new Set(hist.map(d=>d.nums.join('-'))), last=hist[0].nums;
+  const pickW=(wt,k,max)=>{ const c=new Set(); while(c.size<k){ let tot=0; for(let i=1;i<=max;i++) if(!c.has(i)) tot+=wt[i]; let x=r()*tot, pk=0; for(let i=1;i<=max;i++){ if(c.has(i)) continue; pk=i; x-=wt[i]; if(x<=0) break; } c.add(pk); } return [...c].sort((a,b)=>a-b); };
+  let a, tries=0;
+  do{ a=pickW(w,PICK,N_MAIN); tries++; } while(tries<5000 && (!smartOk(a,drawn) || a.filter(x=>last.includes(x)).length>2));
+  return {nums:a, strong:pickW(sw,1,N_STRONG)[0], z:a.map(x=>(f[x]-E)/sd)};
+}
+function smartTrack(N){
+  const rows=[];
+  for(let i=0;i<Math.min(N,cur.length-201);i++){ const d=cur[i]; if(!d.id) continue; const t=smartTicket(cur.slice(i+1), d.id); if(!t) continue;
+    const h=t.nums.filter(x=>d.nums.includes(x)).length; rows.push({d,t,h,s:t.strong===d.strong}); }
+  return rows;
+}
+const PEN_PATHS=['M50 8C74 6 94 22 92 48C90 76 66 94 44 90C20 86 6 66 10 42C13 22 30 10 56 11','M48 7C76 8 95 28 91 54C87 78 62 93 40 88C17 83 5 60 11 38C16 19 34 8 60 12','M52 9C78 10 93 30 90 55C86 80 58 92 37 86C15 80 7 57 13 36C19 17 38 8 58 13'];
+function penSvg(i){ const d=PEN_PATHS[i%3]; return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" pathLength="1" style="--len:1;--d:${(.15+i*.12).toFixed(2)}s"/></svg>`; }
+let SMART=null, SMART_LAST=null;
+function renderSmart(){
+  const slip=$('#slip'); if(!slip) return;
+  if(cur.length<201||!cur[0].id){ slip.innerHTML='<div class="muted">צריך לפחות 200 הגרלות כדי לבנות טופס.</div>'; $('#score').innerHTML=''; $('#diag').innerHTML=''; return; }
+  const nextId=cur[0].id+1, t=SMART=smartTicket(cur,nextId), on=new Set(t.nums);
+  let ci=0;
+  slip.innerHTML=`<div class="slip-head"><div><div class="slip-label">לוטו · טבלה 1</div><h2>הטופס המושכל</h2></div>
+      <div class="for">להגרלה <b class="num">${nextId}</b><br>נבנה אחרי הגרלה ${cur[0].id} · ${dateHe(cur[0].date)}</div></div>
+    <div class="slip-label">6 מספרים</div>
+    <div class="sgrid">${NUMS.map(n=>`<div class="sc${on.has(n)?' on':''}">${n}${on.has(n)?penSvg(ci++):''}</div>`).join('')}</div>
+    <div class="slip-label" style="margin-top:12px">מספר חזק</div>
+    <div class="sgrid s7">${[...Array(N_STRONG)].map((_,i)=>`<div class="sc${t.strong===i+1?' on':''}">${i+1}${t.strong===i+1?penSvg(ci++):''}</div>`).join('')}</div>
+    <div class="slip-foot"><div class="balls start">${t.nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(t.strong,'sm')}</div>
+      <button class="btn" id="slipCopy">העתק טופס</button></div>
+    <ul class="slip-why">
+      <li><b>נבחר מתוך 1,000 ההגרלות האחרונות</b>, עם העדפה קלה למספרים שיצאו יותר. ההעדפה קלה בכוונה, כי השכיחות לא מנבאת (ראו אבחון למטה).</li>
+      <li><b>מסונן נגד צירופים פופולריים:</b> לפחות 2 מספרים מעל 31, בלי רצפים, סכום ${sumOf(t.nums)} בטווח המרכזי. אם תזכו, תתחלקו עם פחות אנשים.</li>
+      <li><b>קבוע להגרלה הזו.</b> הוא מתחלף לבד אחרי כל הגרלה, וכל טופס שהיה נבדק מול התוצאה שלו.</li>
+    </ul>`;
+  $('#slipCopy').onclick=()=>{ const txt=`${t.nums.join(' ')} | חזק ${t.strong}`; (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('הטופס הועתק'),()=>toast('ההעתקה נכשלה')); };
+
+  const tr=smartTrack(100); SMART_LAST=tr[0]||null; const N=tr.length, hits=sumOf(tr.map(x=>x.h)), g3=tr.filter(x=>x.h>=3).length, sh=tr.filter(x=>x.s).length;
+  const eh=N*PICK*PICK/N_MAIN, sdh=Math.sqrt(N*PICK*(PICK/N_MAIN)*(1-PICK/N_MAIN)*(N_MAIN-PICK)/(N_MAIN-1)), zz=(hits-eh)/(sdh||1);
+  $('#score').innerHTML=`<div class="eyebrow">הטופס המושכל מול התוצאות</div><h3>${fmt(N)} ההגרלות האחרונות</h3>
+    <p class="muted small" style="margin:6px 0 0">לפני כל הגרלה בניתי את הטופס רק ממה שהיה ידוע עד אז, ואז בדקתי מול מה שיצא.</p>
+    <div class="tally">
+      <div><b>${fmt(hits/(N||1),2)}</b><span>פגיעות לטופס</span><em>אקראי: ${fmt(PICK*PICK/N_MAIN,2)}</em></div>
+      <div><b>${g3}</b><span>פעמים 3 מספרים ומעלה</span><em>אקראי: כ־${fmt(N*p3plus(),1)}</em></div>
+      <div><b>${sh}</b><span>פעמים החזק עלה</span><em>אקראי: כ־${fmt(N/N_STRONG,1)}</em></div>
+    </div>
+    <div class="hrows">${tr.slice(0,40).map(x=>`<div class="hrow"><span class="num muted">${dateHe(x.d.date).slice(0,5)}</span><div class="balls start">${x.t.nums.map(n=>ball(n,'xs'+(x.d.nums.includes(n)?' hit':''))).join('')}<span class="plus">+</span>${sball(x.t.strong,'xs'+(x.s?' hit':''))}</div><span class="h ${x.h>=3?'g':x.h===0?'z':''}">${x.h}${x.s?'+':''}</span></div>`).join('')}</div>
+    <p class="muted small" style="margin:8px 0 0">מסומן בירוק: מספר שעלה. המספר בסוף השורה הוא כמה מה־6 עלו, ו־+ אומר שגם החזק עלה. הסטייה מאקראי: ${zz>=0?'+':''}${fmt(zz,1)}σ, ${Math.abs(zz)<2?'בטווח הרעש.':'חריגה. נבדוק אם היא נשמרת.'}</p>`;
+
+  /* diagnosis: what went wrong with the guesses so far, measured on the data */
+  let top=0, bot=0, T=0;
+  for(let i=0;i<Math.min(300,cur.length-1001);i++){ const ff=Array(N_MAIN+1).fill(0); for(let j=i+1;j<=i+1000;j++) cur[j].nums.forEach(x=>ff[x]++);
+    const o=NUMS.slice().sort((a,b)=>ff[b]-ff[a]||a-b); top+=o.slice(0,6).filter(x=>cur[i].nums.includes(x)).length; bot+=o.slice(-6).filter(x=>cur[i].nums.includes(x)).length; T++; }
+  const miss15=Math.pow(1-p3plus(),15), pct=x=>fmt(100*x,1)+'%', six=new Set(cur.map(d=>d.nums.join('-'))).size===cur.length;
+  $('#diag').innerHTML=`<div class="eyebrow">אבחון</div><h3>מה לא עבד בניחושים עד עכשיו, ומה הטופס הזה עושה אחרת</h3>
+    <div class="dx">
+      <article><dl><dt>תסמין</dt><dd>כ־15 טפסים בחודשיים, בלי אף זכייה.</dd>
+        <dt>הסיבה</dt><dd><span class="fig">${pct(miss15)}</span><br>זה הסיכוי ש־15 טפסים לא יזכו בכלום גם כשהכול תקין. 15 טפסים זה מדגם קטן מדי כדי לשפוט שיטה, לטובה או לרעה.</dd>
+        <dt>התיקון</dt><dd>כל טופס נבדק מול התוצאה שלו לאורך ${fmt(N)} הגרלות (בטבלה למעלה), ולא לפי תחושה מכמה הגרלות.</dd></dl></article>
+      <article><dl><dt>תסמין</dt><dd>הניחושים נבנו מהמספרים ש"יצאו הכי הרבה".</dd>
+        <dt>הסיבה</dt><dd><span class="fig">${fmt(top/(T||1),2)} מול ${fmt(bot/(T||1),2)}</span><br>ב־${fmt(T)} ההגרלות האחרונות, 6 המספרים השכיחים ביותר תפסו בממוצע ${fmt(top/(T||1),2)}, ו־6 הנדירים ביותר תפסו ${fmt(bot/(T||1),2)}. השכיחות מהעבר לא מנבאת את ההגרלה הבאה.</dd>
+        <dt>התיקון</dt><dd>השכיחות נכנסת רק כהעדפה קלה, ולא כחיזוי.</dd></dl></article>
+      <article><dl><dt>תסמין</dt><dd>"הצירוף הכי מחובר" יצא בדיוק ההגרלה של 13/01/2024.</dd>
+        <dt>הסיבה</dt><dd><span class="fig">0</span><br>${six?'צירופים של 6 שחזרו מאז 2011. ':''}חיפוש מספרים ש"יוצאים יחד" מוצא פשוט הגרלות שכבר היו, וצירוף מלא אף פעם לא חזר.</dd>
+        <dt>התיקון</dt><dd>מה שאפשר לשפר באמת: פחות חלוקה בפרס (סינון פופולריים) ויותר כיסוי כששולחים כמה טפסים (מצב "סט מכסה" במחולל).</dd></dl></article>
+    </div>`;
+}
+
 /* last-1000 report: recomputed from the data on every load and every new draw */
 function render1000(){
   const el=$('#k1000'); if(!el) return;
@@ -916,8 +1050,8 @@ function renderNext(){
   $('#nextTitle').innerHTML = nd.id ? `הגרלה <span class="num">${nd.id}</span>${nd.exact?'':' <span class="pill" data-tip="המאגר לא מעודכן, המספר מחושב לפי לוח ההגרלות">משוער</span>'}` : 'ההגרלה הבאה';
   $('#nextMeta').textContent = nd.iso ? `יום ${dow(nd.iso)}, ${dateHe(nd.iso)}, בערב (שעה משוערת ${DRAW_HOUR}:${String(DRAW_MIN).padStart(2,'0')})` : '';
   tickCountdown();
-  $('#nextModel').textContent = 'מודל ' + PRESETS[preset].name;
-  $('#nextBalls').innerHTML = PRED ? PRED.top.map(n=>ball(n,'')).join('')+`<span class="plus">+</span>`+sball(PRED.strong,'') : '<span class="muted">אין מספיק נתונים</span>';
+  const st=SMART; $('#nextModel').textContent = 'הטופס המושכל';
+  $('#nextBalls').innerHTML = st ? st.nums.map(n=>ball(n,'')).join('')+`<span class="plus">+</span>`+sball(st.strong,'') : '<span class="muted">אין מספיק נתונים</span>';
 }
 function renderPredict(){
   PRED = cur.length>30 ? predictFrom(cur, weightsOf(preset)) : null;
@@ -946,7 +1080,7 @@ function renderPredictEval(){
     ev.rows.slice(0,20).map(r=>{ const act=new Set(r.d.nums); return `<tr><td class="num">${r.d.id||''}<div class="muted small">${dateHe(r.d.date)}</div></td>
       <td><div class="balls start">${r.top.map(n=>ball(n,'xs'+(act.has(n)?' hit':''))).join('')}<span class="plus">+</span>${sball(r.strong,'xs'+(r.sHit?' hit':''))}</div></td>
       <td><div class="balls start">${ballsHtml(r.d,'xs')}</div></td><td><span class="pill ${r.hits>=3?'gold':r.hits>=2?'good':''}">${r.hits}${r.sHit?' + חזק':''}</span></td></tr>`; }).join('')+'</tbody>';
-  if(PRED){ const lastRow=ev.rows[0]; if(lastRow) $('#lastVsPred').innerHTML = `המודל "${PRESETS[preset].name}" חזה להגרלה זו: <b class="num">${lastRow.top.join(' ')}</b> + ${lastRow.strong} · <b>${lastRow.hits}</b> פגיעות${lastRow.sHit?' + חזק':''}.`; }
+  if(SMART_LAST){ const x=SMART_LAST; $('#lastVsPred').innerHTML = `הטופס המושכל להגרלה זו היה <b class="num">${x.t.nums.join(' ')}</b> + ${x.t.strong} · <b>${x.h}</b> פגיעות${x.s?' + חזק':''}.`; }
   const se=Math.sqrt(PICK*P_HIT*(1-P_HIT)*(N_MAIN-PICK)/(N_MAIN-1)/(ev.n||1));
   $('#cmpTbl').innerHTML = `<thead><tr><th>מודל</th><th>פגיעות בממוצע</th><th>מול אקראי</th><th>3+ פגיעות</th><th>פגיעה בחזק</th></tr></thead><tbody>`+
     Object.keys(PRESETS).map(k=>{ const e=evalPreset(k,300), zz=(e.mean-exp)/se; return `<tr${k===preset?' style="background:var(--surface-2)"':''}><td><b>${PRESETS[k].name}</b></td><td class="num">${fmt(e.mean,3)}</td><td><span class="pill ${Math.abs(zz)<2?'':zz>0?'good':'bad'}">${zz>=0?'+':''}${fmt(zz,1)}σ</span></td><td class="num">${e.ge3}</td><td class="num">${fmt(100*e.sRate,1)}%</td></tr>`; }).join('')+
