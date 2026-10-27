@@ -292,6 +292,72 @@ body{background-image:radial-gradient(color-mix(in srgb,var(--line) 70%,transpar
 .a11y-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}
 .a11y-row input[type=range]{flex:1;accent-color:var(--pen)}
 [hidden]{display:none!important}
+
+/* ===== one screen per tab ===== */
+body:not([data-page="predict"]) #stage, body:not([data-page="predict"]) #smart, body:not([data-page="predict"]) #diag{display:none}
+body:not(.show-range) .rangebar{display:none}
+body:not([data-page="predict"]) .hero{padding-top:0}
+body:not([data-page="predict"]) .rangebar{margin:0 0 18px!important}
+section.page>.sec-head{position:relative;padding:22px 0 14px;margin:0 0 18px;border-bottom:2px solid var(--print)}
+section.page>.sec-head h2{font-size:clamp(44px,6vw,64px);line-height:.95}
+section.page>.sec-head p{font-size:15.5px;color:var(--muted);max-width:760px}
+body:not([data-page="predict"]) section.page{padding-top:8px}
+
+/* tab bar with a sliding marker */
+nav.tabs{position:relative}
+nav.tabs button{position:relative;z-index:1;transition:color .2s}
+nav.tabs button.on{background:none;box-shadow:none;color:var(--surface)}
+.tab-ink{position:absolute;top:0;left:0;right:auto;border-radius:10px;background:var(--ink);z-index:0;transition:transform .45s cubic-bezier(.3,1.3,.5,1),width .45s cubic-bezier(.3,1.3,.5,1);will-change:transform}
+html.hc nav.tabs button.on{color:#fff}
+
+/* screen entrance: the page rises in, its cards follow one after another */
+@keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+section.page.enter>.sec-head{animation:rise .5s cubic-bezier(.2,.8,.2,1) both}
+section.page.enter .card, section.page.enter .fslip, section.page.enter .plan{animation:rise .55s cubic-bezier(.2,.8,.2,1) both}
+section.page.enter .card:nth-of-type(1){animation-delay:.06s} section.page.enter .card:nth-of-type(2){animation-delay:.12s}
+section.page.enter .card:nth-of-type(3){animation-delay:.18s} section.page.enter .card:nth-of-type(4){animation-delay:.24s}
+section.page.enter .grid2>*:nth-child(2), section.page.enter .grid3>*:nth-child(2){animation-delay:.14s}
+section.page.enter .grid3>*:nth-child(3){animation-delay:.22s}
+@keyframes pop{from{opacity:0;transform:scale(.6)}to{opacity:1;transform:none}}
+section.page.enter .heat .cell, section.page.enter .rank .rk{animation:pop .4s cubic-bezier(.3,1.4,.5,1) both}
+section.page.enter .heat .cell:nth-child(4n+1), section.page.enter .rank .rk:nth-child(4n+1){animation-delay:.08s}
+section.page.enter .heat .cell:nth-child(4n+2), section.page.enter .rank .rk:nth-child(4n+2){animation-delay:.14s}
+section.page.enter .heat .cell:nth-child(4n+3), section.page.enter .rank .rk:nth-child(4n+3){animation-delay:.2s}
+section.page.enter .heat .cell:nth-child(4n), section.page.enter .rank .rk:nth-child(4n){animation-delay:.26s}
+
+/* touch and hover feedback */
+@media (hover:hover){
+  .card{transition:transform .25s ease,box-shadow .25s ease}
+  .card:hover{transform:translateY(-2px);box-shadow:0 18px 40px -22px rgba(35,64,200,.45)}
+  .stage .card:hover{transform:translateY(-3px)}
+  .ball{transition:transform .35s cubic-bezier(.3,1.6,.5,1)}
+  .ball:hover{transform:translateY(-4px) rotate(-12deg) scale(1.08)}
+  .sc{transition:transform .2s,background .2s}
+  .sc:hover{transform:scale(1.08);background:color-mix(in srgb,var(--pen) 8%,var(--surface))}
+}
+.btn{transition:transform .12s,filter .2s,background .2s}
+.btn:active{transform:scale(.96)}
+nav.tabs button:active{transform:scale(.95)}
+
+/* draw night: lights drifting behind the stage */
+.stage .glow{position:absolute;border-radius:50%;filter:blur(60px);opacity:.55;pointer-events:none;animation:drift 18s ease-in-out infinite alternate}
+.stage .glow.g1{width:420px;height:420px;background:#3b55ff;top:-160px;right:8%}
+.stage .glow.g2{width:340px;height:340px;background:#d52b3a;bottom:-180px;left:4%;animation-duration:22s}
+.stage .glow.g3{width:240px;height:240px;background:#8a5cff;top:30%;left:42%;opacity:.3;animation-duration:26s}
+@keyframes drift{to{transform:translate(-60px,40px) scale(1.15)}}
+.stage .floater{position:absolute;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 34% 28%,rgba(255,255,255,.5),rgba(255,255,255,.06) 60%);border:1px solid rgba(255,255,255,.12);animation:float 14s ease-in-out infinite}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-26px) rotate(160deg)}}
+.stage>.wrap{position:relative;z-index:1}
+.stage .countdown{animation:tick 1s steps(1) infinite}
+@keyframes tick{50%{border-color:rgba(255,179,186,.55)}}
+.slip{animation:rise .7s .15s cubic-bezier(.2,.8,.2,1) both}
+.score{animation:rise .7s .3s cubic-bezier(.2,.8,.2,1) both}
+@media (prefers-reduced-motion:reduce){
+  section.page.enter *, section.page.enter>.sec-head, .slip, .score, .stage .glow, .stage .floater, .stage .countdown{animation:none!important}
+  .tab-ink{transition:none}
+}
+html.no-motion .tab-ink{transition:none}
+
 .cart-bar{display:none}
 @media (max-width:900px){
   .cart-bar{display:flex;position:fixed;inset:auto 0 0 0;z-index:30;align-items:center;justify-content:space-between;gap:10px;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:var(--ink);color:var(--surface);box-shadow:0 -10px 30px -12px rgba(0,0,0,.4)}
@@ -344,7 +410,7 @@ html.hc .sc{border-color:#000;color:#000}
 <header class="top">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>לוטו · מרכז ניתוח</span></div>
-    <nav class="tabs" id="tabs">
+    <nav class="tabs" id="tabs" aria-label="עמודי האתר">
       <button data-p="predict" class="on">תחזית</button>
       <button data-p="cart">טפסים ועלות</button>
       <button data-p="overview">סקירה</button>
@@ -363,7 +429,9 @@ html.hc .sc{border-color:#000;color:#000}
 </header>
 
 <a class="skip" href="#smart">דלג לטופס המושכל</a>
-<div class="stage" id="stage"><div class="wrap">
+<div class="stage" id="stage"><span class="glow g1" aria-hidden="true"></span><span class="glow g2" aria-hidden="true"></span><span class="glow g3" aria-hidden="true"></span>
+<span class="floater" aria-hidden="true" style="width:70px;height:70px;top:18%;left:6%"></span><span class="floater" aria-hidden="true" style="width:38px;height:38px;top:62%;left:30%;animation-delay:-4s"></span><span class="floater" aria-hidden="true" style="width:54px;height:54px;top:12%;left:52%;animation-delay:-8s;animation-duration:18s"></span>
+<div class="wrap">
     <div class="hero-grid" id="stageGrid">
       <div class="card nextdraw">
         <div class="meta">
@@ -373,7 +441,7 @@ html.hc .sc{border-color:#000;color:#000}
         <div class="muted small" id="nextMeta" style="margin-bottom:12px"></div>
         <div class="eyebrow" style="margin-bottom:8px"><span id="nextModel">הטופס המושכל</span></div>
         <div class="balls" id="nextBalls"></div>
-        <div class="ctrl" style="margin-top:14px"><a class="btn primary" href="#smart">לטופס המושכל ולמה הוא נבחר</a></div>
+        <div class="ctrl" style="margin-top:14px"><a class="btn primary" href="#smart" data-goto="predict" data-anchor="smart">לטופס המושכל ולמה הוא נבחר</a></div>
       </div>
       <div class="card lastdraw">
         <div class="meta">
@@ -507,6 +575,7 @@ html.hc .sc{border-color:#000;color:#000}
 
   <!-- OVERVIEW -->
   <section class="page" id="p-overview">
+    <div class="sec-head"><div><h2>סקירה</h2><p>התמונה הכללית במבט אחד: המספרים החמים והקרים, מי לא יצא הכי הרבה זמן, והאם ההגרלות נראות אקראיות.</p></div></div>
     <div class="grid3">
       <div class="card"><h3>המספרים החמים</h3><p class="muted small" style="margin:-4px 0 10px">הופיעו הכי הרבה בטווח שנבחר</p><div class="balls start" id="ovHot"></div></div>
       <div class="card"><h3>המספרים הקרים</h3><p class="muted small" style="margin:-4px 0 10px">הופיעו הכי מעט בטווח שנבחר</p><div class="balls start" id="ovCold"></div></div>
@@ -1615,20 +1684,46 @@ function showImportError(text){
 function download(content,type,name){ const b=new Blob([content],{type}); const u=URL.createObjectURL(b); const a=document.createElement('a'); a.href=u; a.download=name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=>URL.revokeObjectURL(u),1000); }
 
 /* ---------- events ---------- */
+const STATS_PAGES=['predict','overview','freq','gaps','pairs','dist'];
 function go(p, scroll=true){
-  $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
-  $$('section.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));
+  if(!document.getElementById('p-'+p)) p='predict';
+  const prev=document.body.dataset.page;
+  document.body.dataset.page=p; document.body.classList.toggle('show-range',STATS_PAGES.includes(p));
+  $$('#tabs button').forEach(b=>{ const on=b.dataset.p===p; b.classList.toggle('on',on); b.setAttribute('aria-selected',on); if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
+  $$('section.page').forEach(s=>{ const on=s.id==='p-'+p; s.classList.toggle('on',on); if(on && prev!==p){ s.classList.remove('enter'); void s.offsetWidth; s.classList.add('enter'); } });
+  moveTabInk();
+  /* the analysis-range bar sits under the page title; on the home screen it stays below the ticket */
+  const rb=$('.rangebar'), sec=document.getElementById('p-'+p);
+  if(rb && sec){ if(p!=='predict' && STATS_PAGES.includes(p)){ const head=sec.querySelector(':scope>.sec-head'); if(head) head.after(rb); else sec.prepend(rb); } else if(rb.parentElement.id!=='hero') $('#hero').appendChild(rb); }
   if(p==='backtest') runBacktest();
   if(typeof renderCart==='function') renderCart();
   if(A11Y.auto && scroll) setTimeout(()=>{ const sec=$('#p-'+p); if(sec) say(pageSpeech(sec),sec.querySelector('.sec-head .say'),sec); },300);
   redrawCharts();
   history.replaceState(null,'','#'+p);
-  const hero=$('#hero'), y=hero.offsetTop+hero.offsetHeight-64;
-  if(scroll && scrollY>y) scrollTo({top:y,behavior:'smooth'});
+  if(scroll) scrollTo({top:0,behavior:A11Y.motion||matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
+  requestAnimationFrame(()=>countUps(document.getElementById('p-'+p)));
+}
+/* sliding marker under the active tab */
+function moveTabInk(){
+  const nav=$('#tabs'), on=nav&&nav.querySelector('button.on'); if(!on) return;
+  let ink=nav.querySelector('.tab-ink'); if(!ink){ ink=document.createElement('span'); ink.className='tab-ink'; ink.setAttribute('aria-hidden','true'); nav.prepend(ink); }
+  ink.style.width=on.offsetWidth+'px'; ink.style.height=on.offsetHeight+'px'; ink.style.transform=`translate(${on.offsetLeft}px,${on.offsetTop}px)`;
+  const r=on.getBoundingClientRect(), nr=nav.getBoundingClientRect(); if(r.left<nr.left||r.right>nr.right) on.scrollIntoView({inline:'center',block:'nearest',behavior:'smooth'});
+}
+addEventListener('resize',()=>moveTabInk());
+/* numbers count up when a screen opens */
+function countUps(root){
+  if(!root || A11Y.motion || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  root.querySelectorAll('.tally b, .kpi b, .sum-total b, .plan .price, .dx .fig').forEach(el=>{
+    const txt=el.textContent, m=txt.match(/^(\D*?)(\d[\d,]*(?:\.\d+)?)(.*)$/s); if(!m || el.dataset.counting) return;
+    const target=parseFloat(m[2].replace(/,/g,'')), dec=(m[2].split('.')[1]||'').length; if(!isFinite(target)||target===0) return;
+    el.dataset.counting='1'; const t0=performance.now(), D=700;
+    const step=t=>{ const k=Math.min(1,(t-t0)/D), e=1-Math.pow(1-k,3); el.textContent=m[1]+fmt(target*e,dec)+m[3]; if(k<1) requestAnimationFrame(step); else { el.textContent=txt; delete el.dataset.counting; } };
+    requestAnimationFrame(step); });
 }
 $('#tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) go(b.dataset.p); });
 document.addEventListener('click',e=>{
-  const g=e.target.closest('[data-goto]'); if(g){ e.preventDefault(); go(g.dataset.goto); scrollTo({top:$('#hero').offsetTop+$('#hero').offsetHeight-64,behavior:'smooth'}); }
+  const g=e.target.closest('[data-goto]'); if(g){ e.preventDefault(); go(g.dataset.goto, !g.dataset.anchor); if(g.dataset.anchor) setTimeout(()=>document.getElementById(g.dataset.anchor).scrollIntoView({behavior:'smooth',block:'start'}),50); }
   const del=e.target.closest('[data-del]'); if(del){ userDraws=userDraws.filter(d=>keyOf(d)!==del.dataset.del); saveUser(); renderAll(); toast('ההגרלה נמחקה'); }
 });
 $('#rangeSeg').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; range=b.dataset.r; ls.set(LS_RANGE,range); $$('#rangeSeg button').forEach(x=>x.classList.toggle('on',x===b)); renderAll(); });
@@ -1690,7 +1785,8 @@ $('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ 
   try{ baseDraws = await fetchBase(); }
   catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
-  const h=location.hash.slice(1); if(h && document.getElementById('p-'+h)) go(h,false);
+  go(location.hash.slice(1)||'predict',false); setTimeout(moveTabInk,400);
+  if(document.fonts&&document.fonts.ready) document.fonts.ready.then(moveTabInk);
   /* keep an open tab current: re-check lotto.csv every 10 minutes and whenever the tab comes back into view */
   setInterval(refreshBase, 6e5);
   document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) refreshBase(); });
