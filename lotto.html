@@ -236,7 +236,70 @@ details summary{cursor:pointer;font-weight:700}
 .dx dt:first-child{margin-top:0}
 .dx dd{margin:2px 0 0}
 .dx .fig{font-family:var(--display);font-size:30px;line-height:1;color:var(--ink)}
-:focus-visible{outline:2px solid var(--pen);outline-offset:2px}
+:focus-visible{outline:3px solid var(--pen);outline-offset:2px}
+
+/* ===== draw-night stage ===== */
+body{background-image:radial-gradient(color-mix(in srgb,var(--line) 70%,transparent) 1px,transparent 1.2px);background-size:22px 22px;background-attachment:fixed}
+.stage{--surface:rgba(255,255,255,.05);--surface-2:rgba(255,255,255,.08);--line:rgba(255,255,255,.14);--ink:#f2f4fb;--muted:#aeb7d2;--shadow:none;
+  color:var(--ink);padding:28px 0 34px;position:relative;overflow:hidden;
+  background:radial-gradient(60% 90% at 78% -20%,#2b3ea8 0,transparent 70%),radial-gradient(45% 70% at 0% 120%,rgba(213,43,58,.45),transparent 70%),#0a1130}
+.stage::after{content:"";position:absolute;inset:auto 0 0 0;height:8px;background:repeating-linear-gradient(90deg,#d52b3a 0 14px,transparent 14px 22px);opacity:.85}
+.stage .hero-grid{grid-template-columns:1.15fr 1fr;gap:18px}
+@media (max-width:860px){.stage .hero-grid{grid-template-columns:1fr}}
+.stage .card{background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px)}
+.stage .nextdraw{border-top:1px solid var(--line)}
+.stage h2{font-size:clamp(46px,7vw,72px);letter-spacing:.01em}
+.stage .eyebrow{color:#ffb3ba;letter-spacing:.08em}
+.stage .countdown{font-family:var(--display);font-size:clamp(34px,5vw,48px);line-height:1;background:rgba(0,0,0,.25);border:1px solid var(--line);padding:8px 14px 4px;border-radius:12px;letter-spacing:.04em;direction:ltr}
+.stage .ball{--s:54px;box-shadow:inset 0 -4px 8px rgba(0,0,0,.18),0 8px 22px -6px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.06)}
+.stage .ball.strong{box-shadow:inset 0 -4px 8px rgba(0,0,0,.25),0 0 26px -2px rgba(255,77,92,.65)}
+@media (max-width:480px){.stage .ball{--s:40px}.stage .card{padding:14px}}
+.stage .btn{background:rgba(255,255,255,.08);color:var(--ink);border-color:var(--line)}
+.stage .btn.primary{background:#fff;color:#0a1130;border-color:#fff;text-decoration:none;display:inline-block}
+.stage .banner{background:rgba(63,207,147,.12);border-color:rgba(63,207,147,.4)}
+.stage .banner:not(.ok){background:rgba(227,181,78,.14);border-color:rgba(227,181,78,.45)}
+.stage a{color:#c9d2ff}
+@keyframes roll{0%{transform:translateY(-36px) rotate(-220deg) scale(.6);opacity:0}70%{transform:translateY(4px) rotate(12deg) scale(1.03);opacity:1}100%{transform:none}}
+.stage .balls .ball{animation:roll .7s cubic-bezier(.3,.7,.3,1) both}
+.stage .balls .ball:nth-child(2){animation-delay:.08s}.stage .balls .ball:nth-child(3){animation-delay:.16s}.stage .balls .ball:nth-child(4){animation-delay:.24s}
+.stage .balls .ball:nth-child(5){animation-delay:.32s}.stage .balls .ball:nth-child(6){animation-delay:.40s}.stage .balls .ball:nth-child(8){animation-delay:.56s}
+.hero{padding-top:22px}
+.top{border-bottom:0;box-shadow:0 1px 0 var(--line)}
+.stage+main .hero{padding-top:22px}
+
+/* ===== read-aloud & accessibility ===== */
+.skip{position:absolute;inset-inline-start:12px;top:-60px;z-index:100;background:var(--pen);color:#fff;padding:10px 14px;border-radius:10px;font-weight:700}
+.skip:focus{top:10px}
+.say{display:inline-flex;align-items:center;gap:6px;font:inherit;font-size:12.5px;font-weight:700;color:var(--pen);background:color-mix(in srgb,var(--pen) 10%,transparent);border:1px solid color-mix(in srgb,var(--pen) 30%,transparent);border-radius:999px;padding:4px 10px 4px 12px;cursor:pointer;white-space:nowrap;vertical-align:middle}
+.say:hover{background:color-mix(in srgb,var(--pen) 18%,transparent)}
+.say svg{width:15px;height:15px}
+.say.on{background:var(--pen);color:#fff}
+.say.on svg path.w{animation:wave 1s ease-in-out infinite}
+@keyframes wave{50%{opacity:.25}}
+.stage .say{color:#dfe4ff;background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.2)}
+.say-host{position:relative}
+.say-host>.say.pin{position:absolute;top:12px;inset-inline-end:12px;z-index:2}
+.lastdraw .meta>div .say{margin-top:8px}
+.slip-foot .say{margin-inline-start:auto}
+.sec-head .say{align-self:center}
+.a11y{position:fixed;inset-block-start:70px;inset-inline-end:max(16px,calc((100vw - 1180px)/2 + 16px));z-index:50;width:min(360px,calc(100vw - 32px));max-height:calc(100vh - 90px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:0 24px 60px -20px rgba(10,17,48,.45)}
+.a11y-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.a11y-head b{font-family:var(--display);font-size:30px;font-weight:700}
+.a11y-sec{font-size:12px;font-weight:700;color:var(--print);letter-spacing:.05em;margin:12px 0 6px}
+.a11y-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.a11y-grid .btn{padding:10px;font-size:14px}
+.a11y-grid .btn[aria-pressed="true"]{background:var(--ink);color:var(--surface);border-color:var(--ink)}
+.a11y-row{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:14px}
+.a11y-row input[type=range]{flex:1;accent-color:var(--pen)}
+.reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
+html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
+html.no-motion .sc svg path{stroke-dashoffset:0}
+html.links a{text-decoration:underline!important;text-underline-offset:3px;font-weight:700}
+html.hc{--bg:#fff;--surface:#fff;--surface-2:#f0f0f0;--line:#000;--ink:#000;--muted:#1a1a1a;--print:#a3001a;--pen:#0019a8;--accent:#0019a8;--good:#00602f}
+html.hc body{background-image:none}
+html.hc .stage{background:#000}
+html.hc .sc{border-color:#000;color:#000}
+@media (prefers-reduced-motion:reduce){.stage .balls .ball{animation:none}}
 </style>
 </head>
 <body>
@@ -255,27 +318,23 @@ details summary{cursor:pointer;font-weight:700}
       <button data-p="check">בדיקת טופס</button>
       <button data-p="data">נתונים</button>
     </nav>
+    <button class="iconbtn" id="a11yBtn" aria-label="נגישות והקראה" aria-expanded="false" aria-controls="a11y" title="נגישות והקראה"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v5m0 0l-3.5 6.5M12 15l3.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
     <button class="iconbtn" id="themeBtn" title="מצב תצוגה" aria-label="מצב תצוגה">◐</button>
   </div>
 </header>
 
-<main class="wrap">
-  <section class="slipwrap" id="smart" aria-label="הטופס המושכל">
-    <div class="slip" id="slip"><div class="muted">טוען נתונים…</div></div>
-    <div class="card score" id="score"></div>
-  </section>
-  <section class="card diag" id="diag" aria-label="אבחון הניחוש"></section>
-  <div class="hero" id="hero">
-    <div class="hero-grid">
+<a class="skip" href="#smart">דלג לטופס המושכל</a>
+<div class="stage" id="stage"><div class="wrap">
+    <div class="hero-grid" id="stageGrid">
       <div class="card nextdraw">
         <div class="meta">
           <div><div class="eyebrow">ההגרלה הקרובה</div><h2 id="nextTitle">—</h2></div>
           <div class="countdown num" id="countdown"></div>
         </div>
         <div class="muted small" id="nextMeta" style="margin-bottom:12px"></div>
-        <div class="eyebrow" style="margin-bottom:8px">התחזית המובילה <span id="nextModel" class="pill" style="margin-inline-start:6px"></span></div>
+        <div class="eyebrow" style="margin-bottom:8px"><span id="nextModel">הטופס המושכל</span></div>
         <div class="balls" id="nextBalls"></div>
-        <div class="ctrl" style="margin-top:14px"><button class="btn primary" data-goto="predict">לכל התחזיות והטפסים</button></div>
+        <div class="ctrl" style="margin-top:14px"><a class="btn primary" href="#smart">לטופס המושכל ולמה הוא נבחר</a></div>
       </div>
       <div class="card lastdraw">
         <div class="meta">
@@ -287,6 +346,14 @@ details summary{cursor:pointer;font-weight:700}
         <div id="freshBanner"></div>
       </div>
     </div>
+</div></div>
+<main class="wrap" id="main">
+  <div class="hero" id="hero">
+  <section class="slipwrap" id="smart" aria-label="הטופס המושכל" tabindex="-1">
+    <div class="slip" id="slip"><div class="muted">טוען נתונים…</div></div>
+    <div class="card score" id="score"></div>
+  </section>
+  <section class="card diag" id="diag" aria-label="אבחון הניחוש"></section>
     <div class="card rangebar" style="margin-top:16px">
       <div><div class="eyebrow" style="margin-bottom:8px">טווח הניתוח הסטטיסטי</div>
         <div class="seg" id="rangeSeg">
@@ -515,7 +582,29 @@ details summary{cursor:pointer;font-weight:700}
   הניתוח הוא סטטיסטיקה תיאורית בלבד. כל הגרלה בלתי תלויה בקודמותיה, ואף שיטה לא מגדילה את הסיכוי לזכות. מקור הנתונים: מפעל הפיס.
   הניתוח כולל רק את הפורמט הנוכחי (37 מספרים + חזק 1–7, מאז מרץ 2011). הגרלות מוקדמות יותר נשמרות במאגר אבל לא נכנסות לחישובים.
 </div></footer>
-<div class="toast" id="toast" role="status"></div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<aside class="a11y" id="a11y" hidden aria-label="נגישות והקראה">
+  <div class="a11y-head"><b>נגישות והקראה</b><button class="iconbtn" id="a11yClose" aria-label="סגירה">✕</button></div>
+  <div class="a11y-sec">הקראה</div>
+  <div class="a11y-grid">
+    <button class="btn primary" data-say="page">הקרא את העמוד</button>
+    <button class="btn" data-say="ticket">הקרא את הטופס</button>
+    <button class="btn" data-say="selection">הקרא טקסט שסימנתי</button>
+    <button class="btn" data-say="stop">עצור הקראה</button>
+  </div>
+  <label class="a11y-row"><span>מהירות הקראה</span><input type="range" id="a11yRate" min="0.6" max="1.6" step="0.1" value="1"></label>
+  <label class="a11y-row"><input type="checkbox" id="a11yAuto"> <span>להקריא כל עמוד כשפותחים אותו</span></label>
+  <div class="a11y-sec">תצוגה</div>
+  <div class="a11y-grid">
+    <button class="btn" data-a="font-">א−  טקסט קטן</button>
+    <button class="btn" data-a="font+">א+  טקסט גדול</button>
+    <button class="btn" data-a="contrast" aria-pressed="false">ניגודיות גבוהה</button>
+    <button class="btn" data-a="motion" aria-pressed="false">בלי אנימציות</button>
+    <button class="btn" data-a="links" aria-pressed="false">הדגשת קישורים</button>
+    <button class="btn" data-a="reset">איפוס</button>
+  </div>
+  <p class="muted small" id="a11yVoice" style="margin:10px 0 0"></p>
+</aside>
 <div class="tip" id="tip"></div>
 
 <script>
@@ -685,7 +774,71 @@ function renderAll(){
   renderSmart(); renderHero(); render1000(); renderPredict(); renderOverview(); renderFreq(); renderGaps(); renderPairs(); renderDist(); renderData();
   if($('#p-backtest.on')) runBacktest();
   renderCheck();
+  if(typeof mountSay==='function') mountSay();
 }
+/* ===== read-aloud (Web Speech API, Hebrew) and display settings ===== */
+const A11Y_KEY='lotto-a11y';
+const A11Y={ fs:1, hc:false, motion:false, links:false, rate:1, auto:false };
+try{ Object.assign(A11Y, JSON.parse(ls.get(A11Y_KEY)||'{}')); }catch(e){}
+const saveA11y=()=>ls.set(A11Y_KEY,JSON.stringify(A11Y));
+function applyA11y(){
+  const h=document.documentElement; h.classList.toggle('hc',A11Y.hc); h.classList.toggle('no-motion',A11Y.motion); h.classList.toggle('links',A11Y.links);
+  document.body.style.zoom = A11Y.fs===1 ? '' : A11Y.fs;
+  $$('#a11y [data-a]').forEach(b=>{ const k={contrast:'hc',motion:'motion',links:'links'}[b.dataset.a]; if(k) b.setAttribute('aria-pressed',A11Y[k]); });
+  const r=$('#a11yRate'); if(r) r.value=A11Y.rate; const au=$('#a11yAuto'); if(au) au.checked=A11Y.auto;
+}
+const SAY_ICON='<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9h4l5-4v14l-5-4H4z" fill="currentColor"/><path class="w" d="M16 9c1.3 1.6 1.3 4.4 0 6M18.5 6.5c2.7 3 2.7 8 0 11" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg>';
+let heVoice=null, sayBtn=null, sayEl=null;
+function pickVoice(){ if(!('speechSynthesis' in window)) return; const v=speechSynthesis.getVoices(); heVoice=v.find(x=>/^he|^iw/i.test(x.lang))||null;
+  const note=$('#a11yVoice'); if(note) note.textContent = heVoice ? `קול ההקראה: ${heVoice.name}` : (v.length? 'לא נמצא במכשיר קול בעברית. אפשר להוסיף "עברית" בהגדרות הדיבור של המכשיר.' : ''); }
+if('speechSynthesis' in window){ pickVoice(); speechSynthesis.onvoiceschanged=pickVoice; }
+function stopSay(){ if('speechSynthesis' in window) speechSynthesis.cancel(); if(sayBtn){ sayBtn.classList.remove('on'); sayBtn.setAttribute('aria-label',sayBtn.dataset.label); } if(sayEl) sayEl.classList.remove('reading'); sayBtn=sayEl=null; }
+function cleanText(t){ return t.replace(/[•·|]/g,', ').replace(/(\d)\s*\n\s*(?=\d)/g,'$1, ').replace(/\+/g,' ועוד ').replace(/σ/g,' סטיות תקן').replace(/[−–]/g,'-').replace(/\s*\n+\s*/g,'. ').replace(/\s{2,}/g,' ').replace(/(\.\s*){2,}/g,'. ').trim(); }
+function say(text, btn, el){
+  if(!('speechSynthesis' in window)){ toast('הדפדפן הזה לא תומך בהקראה'); return; }
+  const same = btn && sayBtn===btn; stopSay(); if(same) return;
+  const parts=cleanText(text).match(/[^.!?]+[.!?]?/g)||[]; if(!parts.length) return;
+  sayBtn=btn||null; sayEl=el||null; if(sayBtn){ sayBtn.classList.add('on'); sayBtn.setAttribute('aria-label','עצור הקראה'); } if(sayEl) sayEl.classList.add('reading');
+  parts.forEach((p,i)=>{ const u=new SpeechSynthesisUtterance(p.trim()); u.lang='he-IL'; if(heVoice) u.voice=heVoice; u.rate=A11Y.rate; if(i===parts.length-1) u.onend=u.onerror=()=>{ if(sayBtn===btn) stopSay(); }; speechSynthesis.speak(u); });
+}
+const ticketSpeech=(t,title)=>`${title}: ${t.nums.join(', ')}. מספר חזק ${t.strong}.`;
+/* [host, text builder, where the button goes inside the host (null = pinned to the corner)] */
+const SAY_TARGETS=[
+  ['#slip', ()=>SMART ? ticketSpeech(SMART,`הטופס המושכל להגרלה ${cur[0].id+1}`)+' '+[...$$('#slip .slip-why li')].map(li=>li.innerText).join(' ') : '', '.slip-foot'],
+  ['#score', ()=>$('#score').innerText.split('\n').filter(l=>!/^\d{2}\/\d{2}/.test(l)).slice(0,14).join('\n')],
+  ['#diag', ()=>$('#diag').innerText],
+  ['.nextdraw', ()=>`${$('#nextTitle').innerText}. ${$('#nextMeta').innerText}. `+(SMART?ticketSpeech(SMART,'הטופס המושכל'):''), '.ctrl'],
+  ['.lastdraw', ()=>{ const d=all[0]; return d?`התוצאה האחרונה, ${$('#lastTitle').innerText}, ${$('#lastMeta').innerText}. המספרים: ${d.nums.join(', ')}. מספר חזק ${d.strong}. ${$('#lastVsPred').innerText}`:''; }, '.meta>div'],
+  ['#k1000', ()=>$('#k1000').innerText.split('\n').slice(0,40).join('\n')],
+];
+function sayButton(label){ const b=document.createElement('button'); b.type='button'; b.className='say pin'; b.innerHTML=SAY_ICON+'<span>הקרא</span>'; b.dataset.label=label; b.setAttribute('aria-label',label); return b; }
+function mountSay(){
+  SAY_TARGETS.forEach(([sel,fn,slot])=>{ const el=$(sel); if(!el||el.querySelector('.say')) return; const b=sayButton('הקראת '+(el.getAttribute('aria-label')||el.querySelector('h2,h3,.eyebrow')?.innerText.trim()||'החלק הזה'));
+    b.onclick=()=>say(fn(),b,el);
+    const at=slot&&el.querySelector(slot); if(at){ b.classList.remove('pin'); at.appendChild(b); } else { el.classList.add('say-host'); el.prepend(b); } });
+  $$('section.page').forEach(sec=>{ const head=sec.querySelector('.sec-head'); if(!head||head.querySelector('.say')) return; const b=sayButton('הקראת העמוד '+(head.querySelector('h2')?.innerText||'')); b.classList.remove('pin'); b.onclick=()=>say(pageSpeech(sec),b,sec); head.appendChild(b); });
+}
+function pageSpeech(sec){ const head=sec.querySelector('.sec-head'); const cards=[...sec.querySelectorAll('.card')].filter(c=>c.offsetParent).map(c=>c.innerText.split('\n').slice(0,18).join('\n')); return [head?.innerText||'',...cards].join('\n').slice(0,2400); }
+function setupA11y(){
+  applyA11y(); mountSay();
+  const panel=$('#a11y'), btn=$('#a11yBtn');
+  const toggle=open=>{ panel.hidden=!open; btn.setAttribute('aria-expanded',open); if(open){ pickVoice(); panel.querySelector('button.primary').focus(); } };
+  btn.addEventListener('click',()=>toggle(panel.hidden)); $('#a11yClose').addEventListener('click',()=>{ toggle(false); btn.focus(); });
+  document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(!panel.hidden){ toggle(false); btn.focus(); } else stopSay(); } });
+  panel.addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return;
+    if(b.dataset.say==='stop') return stopSay();
+    if(b.dataset.say==='ticket') return SMART && say(ticketSpeech(SMART,`הטופס המושכל להגרלה ${cur[0].id+1}`),null,$('#slip'));
+    if(b.dataset.say==='selection'){ const t=String(getSelection()||'').trim(); return t? say(t) : toast('סמנו קודם טקסט בעמוד'); }
+    if(b.dataset.say==='page'){ const sec=$('section.page.on'); return say([$('.nextdraw')&&SAY_TARGETS[3][1](), SMART?SAY_TARGETS[0][1]():'', sec?pageSpeech(sec):''].join('\n'),null,sec); }
+    const a=b.dataset.a; if(!a) return;
+    if(a==='font+') A11Y.fs=Math.min(1.6,+(A11Y.fs+.1).toFixed(1)); if(a==='font-') A11Y.fs=Math.max(.8,+(A11Y.fs-.1).toFixed(1));
+    if(a==='contrast') A11Y.hc=!A11Y.hc; if(a==='motion') A11Y.motion=!A11Y.motion; if(a==='links') A11Y.links=!A11Y.links;
+    if(a==='reset') Object.assign(A11Y,{fs:1,hc:false,motion:false,links:false,rate:1,auto:false});
+    saveA11y(); applyA11y(); });
+  $('#a11yRate').addEventListener('input',e=>{ A11Y.rate=+e.target.value; saveA11y(); });
+  $('#a11yAuto').addEventListener('change',e=>{ A11Y.auto=e.target.checked; saveA11y(); });
+}
+
 /* ===== informed ticket =====
    One ticket per draw, fixed for that draw: seeded by the draw number so it never changes after the fact
    and can be scored honestly. Mild lean to numbers drawn more often in the previous 1000 draws, then
@@ -1080,7 +1233,7 @@ function renderPredictEval(){
     ev.rows.slice(0,20).map(r=>{ const act=new Set(r.d.nums); return `<tr><td class="num">${r.d.id||''}<div class="muted small">${dateHe(r.d.date)}</div></td>
       <td><div class="balls start">${r.top.map(n=>ball(n,'xs'+(act.has(n)?' hit':''))).join('')}<span class="plus">+</span>${sball(r.strong,'xs'+(r.sHit?' hit':''))}</div></td>
       <td><div class="balls start">${ballsHtml(r.d,'xs')}</div></td><td><span class="pill ${r.hits>=3?'gold':r.hits>=2?'good':''}">${r.hits}${r.sHit?' + חזק':''}</span></td></tr>`; }).join('')+'</tbody>';
-  if(SMART_LAST){ const x=SMART_LAST; $('#lastVsPred').innerHTML = `הטופס המושכל להגרלה זו היה <b class="num">${x.t.nums.join(' ')}</b> + ${x.t.strong} · <b>${x.h}</b> פגיעות${x.s?' + חזק':''}.`; }
+  if(SMART_LAST){ const x=SMART_LAST; $('#lastVsPred').innerHTML = `הטופס המושכל להגרלה זו היה <b class="num">${x.t.nums.join(' ')}</b> + ${x.t.strong} · ${x.h===1?'<b>פגיעה אחת</b>':x.h===0?'<b>אף פגיעה</b>':`<b>${x.h}</b> פגיעות`}${x.s?' + חזק':''}.`; }
   const se=Math.sqrt(PICK*P_HIT*(1-P_HIT)*(N_MAIN-PICK)/(N_MAIN-1)/(ev.n||1));
   $('#cmpTbl').innerHTML = `<thead><tr><th>מודל</th><th>פגיעות בממוצע</th><th>מול אקראי</th><th>3+ פגיעות</th><th>פגיעה בחזק</th></tr></thead><tbody>`+
     Object.keys(PRESETS).map(k=>{ const e=evalPreset(k,300), zz=(e.mean-exp)/se; return `<tr${k===preset?' style="background:var(--surface-2)"':''}><td><b>${PRESETS[k].name}</b></td><td class="num">${fmt(e.mean,3)}</td><td><span class="pill ${Math.abs(zz)<2?'':zz>0?'good':'bad'}">${zz>=0?'+':''}${fmt(zz,1)}σ</span></td><td class="num">${e.ge3}</td><td class="num">${fmt(100*e.sRate,1)}%</td></tr>`; }).join('')+
@@ -1268,6 +1421,7 @@ function go(p, scroll=true){
   $$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.p===p));
   $$('section.page').forEach(s=>s.classList.toggle('on',s.id==='p-'+p));
   if(p==='backtest') runBacktest();
+  if(A11Y.auto && scroll) setTimeout(()=>{ const sec=$('#p-'+p); if(sec) say(pageSpeech(sec),sec.querySelector('.sec-head .say'),sec); },300);
   redrawCharts();
   history.replaceState(null,'','#'+p);
   const hero=$('#hero'), y=hero.offsetTop+hero.offsetHeight-64;
@@ -1333,7 +1487,7 @@ $('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ 
 
 /* ---------- boot ---------- */
 (async function boot(){
-  buildPickers(); loadUser();
+  buildPickers(); loadUser(); setupA11y();
   try{ baseDraws = await fetchBase(); }
   catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
