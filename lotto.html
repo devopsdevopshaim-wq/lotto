@@ -412,6 +412,15 @@ html.no-motion .tab-ink{transition:none}
 .goal-grid div{background:var(--surface-2);border-radius:12px;padding:12px}
 .goal-grid b{display:block;font-family:var(--display);font-size:36px;line-height:1}
 .goal-grid span{font-size:12.5px;color:var(--muted)}
+.jr-group{border-top:1px dashed var(--line);padding:10px 0}
+.jr-group:first-of-type{border-top:0}
+.jr-head{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:baseline;margin-bottom:6px}
+.jr-head b{font-size:15px}
+.jr-row{display:flex;align-items:center;gap:10px;padding:3px 0;flex-wrap:wrap}
+.jr-row .balls{flex-wrap:nowrap;gap:3px}
+.jr-row .h{font-family:var(--display);font-size:24px;line-height:1;min-width:46px}
+.ok{color:var(--good)} .warn{color:var(--bad)}
+.crack-tbl td:nth-child(3),.crack-tbl td:nth-child(4){white-space:nowrap}
 .reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
 html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
 html.no-motion .sc svg path{stroke-dashoffset:0}
@@ -436,6 +445,7 @@ html.hc .sc{border-color:#000;color:#000}
       <button data-p="pairs">זוגות</button>
       <button data-p="dist">התפלגויות</button>
       <button data-p="lab">אלגוריטמים</button>
+      <button data-p="journal">יומן ופיצוח</button>
       <button data-p="backtest">בדיקה לאחור</button>
       <button data-p="gen">מחולל טפסים</button>
       <button data-p="check">בדיקת טופס</button>
@@ -589,6 +599,15 @@ html.hc .sc{border-color:#000;color:#000}
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- GUESS JOURNAL AND RANDOMNESS TESTS -->
+  <section class="page" id="p-journal">
+    <div class="sec-head"><div><h2>יומן הניחושים וניסיון לפצח</h2><p>כל ניחוש שנתתי מאז שהתחלנו, מול מה שיצא באמת. ואחר כך 12 מבחנים סטטיסטיים שמחפשים "קוד" בהגרלות: כל דפוס, הטיה או זיכרון שהיה מאפשר לנחש טוב יותר.</p></div></div>
+    <div class="card" id="jrSum"></div>
+    <div class="card" style="margin-top:16px" id="jrList"></div>
+    <div class="card" style="margin-top:16px" id="crack"></div>
+    <div class="card" style="margin-top:16px" id="jrWhy"></div>
   </section>
 
   <!-- ALGORITHM LAB -->
@@ -1589,6 +1608,85 @@ function goalCalc(){
   const b=$('#goalBuild'); if(b) b.onclick=()=>{ if(CART.length && !confirm('להחליף את הטפסים שכבר בסל?')) return; CART=[]; let left=n+(n%2); while(left>0){ const r=Math.min(14,left); CART.push(makeForm('reg',r)); left-=r; } saveCart(); renderCart(); toast('הטבלאות נוספו לסל'); go('cart'); };
 }
 
+/* ===== guess journal: every ticket given in our conversation, checked against the real draw ===== */
+let JR={n:0,hits:0,g3:0};
+const GUESS_LOG=[
+  {date:'16/10/2026', label:'6 טפסים "חכם" (אקראי, מסונן נגד צירופים פופולריים)', draw:3976, t:[[[1,5,14,27,32,35],5],[[2,9,11,25,34,36],3],[[7,15,18,29,33,36],1],[[5,13,21,28,34,37],5],[[2,14,23,27,33,35],6],[[2,12,16,19,34,37],7]]},
+  {date:'16/10/2026', label:'סט מכסה, 7 טפסים', draw:3976, t:[[[2,6,15,23,26,34],2],[[8,11,19,24,28,35],7],[[1,5,9,17,30,32],5],[[3,12,14,16,22,36],3],[[4,13,18,20,25,37],1],[[7,10,21,29,31,33],4],[[2,9,17,22,27,34],6]]},
+  {date:'27/10/2026', label:'הטופס של 1,000 ההגרלות (השכיחים ביותר)', draw:3979, t:[[[1,11,13,25,27,35],5]]},
+  {date:'27/10/2026', label:'הטופס המושכל', draw:3979, t:[[[7,12,25,28,32,36],1]]},
+  {date:'28/10/2026', label:'ניחושים משולבים, 23 שיטות', draw:3980, t:[[[1,2,7,18,21,35],5],[[1,5,11,21,31,35],1],[[2,6,7,13,22,35],2],[[1,11,25,26,29,35],6],[[1,2,6,7,25,29],3]]},
+  {date:'28/10/2026', label:'ניחושים משולבים, 70 שיטות', draw:3980, t:[[[1,2,7,18,25,35],5],[[7,11,24,25,29,35],1],[[1,18,21,24,27,35],2],[[2,6,7,13,22,35],3],[[1,5,11,21,31,35],4]]},
+];
+function renderJournal(){
+  const box=$('#jrList'); if(!box||!cur.length) return;
+  const byId=new Map(cur.map(d=>[d.id,d])); let n=0, hits=0, g3=0, sh=0, zero=0; const dist=[0,0,0,0,0,0,0];
+  box.innerHTML='<h3>כל הניחושים מול התוצאות</h3>'+GUESS_LOG.map(g=>{ const d=byId.get(g.draw);
+    const rows=g.t.map(([nums,st])=>{ if(!d) return `<div class="jr-row"><div class="balls start">${nums.map(x=>ball(x,'xs')).join('')}<span class="plus">+</span>${sball(st,'xs')}</div><span class="muted small">ממתין להגרלה</span></div>`;
+      const h=nums.filter(x=>d.nums.includes(x)).length, s=st===d.strong; n++; hits+=h; g3+=h>=3; sh+=s; zero+=h===0; dist[h]++;
+      return `<div class="jr-row"><div class="balls start">${nums.map(x=>ball(x,'xs'+(d.nums.includes(x)?' hit':''))).join('')}<span class="plus">+</span>${sball(st,'xs'+(s?' hit':''))}</div><span class="h ${h>=3?'ok':''}">${h}${s?'+':''}</span>${h>=3?'<span class="pill good">3 מספרים</span>':''}</div>`; }).join('');
+    return `<div class="jr-group"><div class="jr-head"><b>${g.label}</b><span class="muted small">ניתן ב־${g.date} · הגרלה ${g.draw}${d?': '+d.nums.join(' ')+' + '+d.strong:''}</span></div>${rows}</div>`; }).join('');
+  JR={n,hits,g3};
+  const E=PICK*PICK/N_MAIN, pz=hyper(0,6);
+  $('#jrSum').innerHTML=`<div class="eyebrow">הסיכום, בלי לייפות</div><h3 style="font-family:var(--display);font-size:34px;line-height:1">${n} טפסים נבדקו מול התוצאות</h3>
+    <div class="goal-grid">
+      <div><b>${hits}</b><span>מספרים שעלו בסך הכול (בממוצע ${fmt(hits/(n||1),2)} לטופס; במזל צפוי ${fmt(E,2)})</span></div>
+      <div><b>${g3}</b><span>טפסים עם 3 מספרים (צפוי במזל: כ־${fmt(n*p3plus(),1)})</span></div>
+      <div><b>${sh}</b><span>פעמים שהמספר החזק עלה (צפוי: כ־${fmt(n/N_STRONG,1)})</span></div>
+      <div><b>${zero}</b><span>טפסים בלי אף מספר (צפוי: כ־${fmt(n*pz,1)}, כלומר ${fmt(100*pz,0)}%)</span></div>
+    </div>
+    <p class="small" style="margin:12px 0 0">${hits/(n||1)>=E?'הניחושים תפסו קצת יותר מהצפוי במזל, אבל במדגם כזה זה עדיין בגדר מזל.':'הניחושים תפסו קצת פחות מהצפוי במזל, ובמדגם כזה זה עדיין בגדר מזל.'} הפילוג (${dist.slice(0,4).map((c,i)=>`${c===1?'טופס אחד':c+' טפסים'} עם ${i}`).join(', ')}) נראה בדיוק כמו הפילוג של טפסים אקראיים. ההגרלה הבאה תיבדק כאן לבד.</p>`;
+}
+
+/* ===== trying to crack the draw: randomness tests on every draw in the current format ===== */
+const normCdf=z=>{ const t=1/(1+0.2316419*Math.abs(z)), d=0.3989423*Math.exp(-z*z/2), p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return z>0?1-p:p; };
+const chiStat=(obs,exp)=>obs.reduce((a,o,i)=>a+(exp[i]>0?(o-exp[i])**2/exp[i]:0),0);
+function runCrackTests(){
+  const D=cur.slice().reverse(), n=D.length, tests=[];
+  const add=(name,what,stat,p)=>tests.push({name,what,stat,p});
+  { const f=Array(N_MAIN).fill(0); D.forEach(d=>d.nums.forEach(x=>f[x-1]++)); add('שכיחות המספרים','האם יש מספר שיוצא יותר מאחרים',`χ²=${fmt(chiStat(f,Array(N_MAIN).fill(n*PICK/N_MAIN)),1)}`,chiP(chiStat(f,Array(N_MAIN).fill(n*PICK/N_MAIN)),N_MAIN-1)); }
+  { const f=Array(N_STRONG).fill(0); D.forEach(d=>f[d.strong-1]++); const x=chiStat(f,Array(N_STRONG).fill(n/N_STRONG)); add('המספר החזק','האם יש מספר חזק מועדף',`χ²=${fmt(x,1)}`,chiP(x,N_STRONG-1)); }
+  { const m=new Map(); D.forEach(d=>{ const a=d.nums; for(let i=0;i<6;i++) for(let j=i+1;j<6;j++){ const k=a[i]*64+a[j]; m.set(k,(m.get(k)||0)+1); } }); const obs=[]; for(let a=1;a<=N_MAIN;a++) for(let b=a+1;b<=N_MAIN;b++) obs.push(m.get(a*64+b)||0);
+    const e=n*15/C(N_MAIN,2), x=chiStat(obs,obs.map(()=>e)); add('זוגות','האם יש זוגות שיוצאים יחד יותר מהצפוי',`χ²=${fmt(x,0)}`,chiP(x,obs.length-1)); }
+  { const obs=Array(7).fill(0); for(let t=1;t<n;t++){ obs[D[t].nums.filter(x=>D[t-1].nums.includes(x)).length]++; } const exp=obs.map((_,k)=>(n-1)*hyper(k,6)); const ob=[obs[0],obs[1],obs[2],obs.slice(3).reduce((a,b)=>a+b,0)], ex=[exp[0],exp[1],exp[2],exp.slice(3).reduce((a,b)=>a+b,0)], x=chiStat(ob,ex);
+    add('זיכרון בין הגרלות','האם מספרים חוזרים מההגרלה הקודמת יותר או פחות מהצפוי',`χ²=${fmt(x,1)}`,chiP(x,3)); }
+  { const obs=Array(7).fill(0); D.forEach(d=>obs[d.nums.filter(x=>x%2).length]++); const nOdd=Math.ceil(N_MAIN/2), exp=obs.map((_,k)=>n*C(nOdd,k)*C(N_MAIN-nOdd,6-k)/C(N_MAIN,6)); const ob=[obs[0]+obs[1],obs[2],obs[3],obs[4],obs[5]+obs[6]], ex=[exp[0]+exp[1],exp[2],exp[3],exp[4],exp[5]+exp[6]], x=chiStat(ob,ex);
+    add('זוגיים ואי־זוגיים','האם החלוקה בין זוגי לאי־זוגי חריגה',`χ²=${fmt(x,1)}`,chiP(x,4)); }
+  { const sums=D.map(d=>d.nums.reduce((a,b)=>a+b,0)), mu=PICK*(N_MAIN+1)/2, v=PICK*(N_MAIN+1)*(N_MAIN-PICK)/12, m=sums.reduce((a,b)=>a+b,0)/n, z=(m-mu)/Math.sqrt(v/n);
+    add('סכום המספרים','האם הסכום הממוצע שונה מהתאוריה',`ממוצע ${fmt(m,1)} מול ${fmt(mu,1)}`,2*(1-normCdf(Math.abs(z)))); }
+  { const obs=Array(16).fill(0), last=Array(N_MAIN+1).fill(-1); let tot=0; D.forEach((d,t)=>d.nums.forEach(x=>{ if(last[x]>=0){ obs[Math.min(15,t-last[x]-1)]++; tot++; } last[x]=t; }));
+    const q=PICK/N_MAIN, exp=obs.map((_,g)=>g<15?tot*q*Math.pow(1-q,g):tot*Math.pow(1-q,15)), x=chiStat(obs,exp); add('אורך הפערים','האם מספרים "חייבים" לחזור אחרי זמן מסוים',`χ²=${fmt(x,1)}`,chiP(x,15)); }
+  { const sums=D.map(d=>d.nums.reduce((a,b)=>a+b,0)), med=sums.slice().sort((a,b)=>a-b)[n>>1], b=sums.map(s=>s>med); let runs=1; for(let i=1;i<n;i++) if(b[i]!==b[i-1]) runs++;
+    const n1=b.filter(Boolean).length, n2=n-n1, mu=2*n1*n2/n+1, v=(mu-1)*(mu-2)/(n-1), z=(runs-mu)/Math.sqrt(v); add('רצפים של גבוה ונמוך','האם אחרי הגרלה "גבוהה" באה בדרך כלל "נמוכה" (או להפך)',`${runs} רצפים מול ${fmt(mu,0)}`,2*(1-normCdf(Math.abs(z)))); }
+  { let maxr=0, who=0, lagW=0; for(let x=1;x<=N_MAIN;x++){ const a=D.map(d=>d.nums.includes(x)?1:0), m=a.reduce((p,q)=>p+q,0)/n; let v=0; a.forEach(y=>v+=(y-m)**2);
+      for(let L=1;L<=10;L++){ let c=0; for(let t=L;t<n;t++) c+=(a[t]-m)*(a[t-L]-m); const r=c/v; if(Math.abs(r)>Math.abs(maxr)){ maxr=r; who=x; lagW=L; } } }
+    const z=Math.abs(maxr)*Math.sqrt(n), p=Math.min(1,370*2*(1-normCdf(z))); add('מחזוריות','האם מספר חוזר בקצב קבוע (בדיקה של 37 מספרים × 10 מרווחים)',`הכי חזק: ${who} כל ${lagW}, r=${fmt(maxr,3)}`,p); }
+  { const f=[Array(N_MAIN).fill(0),Array(N_MAIN).fill(0)], cnt=[0,0]; D.forEach(d=>{ const wd=new Date(d.date+'T12:00:00Z').getUTCDay(), g=wd===6?1:0; cnt[g]++; d.nums.forEach(x=>f[g][x-1]++); });
+    let x=0; for(let i=0;i<N_MAIN;i++){ const tot=f[0][i]+f[1][i]; for(let g=0;g<2;g++){ const e=tot*cnt[g]/n; if(e>0) x+=(f[g][i]-e)**2/e; } } add('יום בשבוע','האם בשבת יוצאים מספרים אחרים מאשר באמצע השבוע',`χ²=${fmt(x,1)}`,chiP(x,N_MAIN-1)); }
+  { let r=0; for(let t=1;t<n;t++) r+=D[t].strong===D[t-1].strong; const e=(n-1)/N_STRONG, z=(r-e)/Math.sqrt(e*(1-1/N_STRONG)); add('חזרה של המספר החזק','האם המספר החזק חוזר מהגרלה להגרלה יותר מהצפוי',`${r} חזרות מול ${fmt(e,0)}`,2*(1-normCdf(Math.abs(z)))); }
+  { const obs=Array(N_MAIN).fill(0); D.forEach(d=>obs[d.nums[0]-1]++); const exp=obs.map((_,i)=>n*C(N_MAIN-i-1,5)/C(N_MAIN,6)); const ob=[],ex=[]; let ao=0,ae=0; obs.forEach((o,i)=>{ ao+=o; ae+=exp[i]; if(ae>=10){ ob.push(ao); ex.push(ae); ao=0; ae=0; } }); if(ae>0){ ob[ob.length-1]+=ao; ex[ex.length-1]+=ae; }
+    const x=chiStat(ob,ex); add('המספר הקטן ביותר','האם המספר הנמוך בכל הגרלה מתנהג כמו בתאוריה',`χ²=${fmt(x,1)}`,chiP(x,ob.length-1)); }
+  return {tests, n};
+}
+function renderCrack(){
+  const box=$('#crack'); if(!box||cur.length<100) return;
+  const {tests,n}=runCrackTests(), thr=0.05/tests.length, failed=tests.filter(t=>t.p<thr);
+  box.innerHTML=`<div class="eyebrow">ניסיון לפצח את ההגרלה</div><h3 style="font-family:var(--display);font-size:34px;line-height:1">${tests.length} מבחנים על ${fmt(n)} הגרלות</h3>
+    <p class="muted small" style="margin:4px 0 10px">אם הייתה בהגרלות הטיה, זיכרון או מחזוריות, אחד מהמבחנים האלה היה מגלה אותה, ואז היה אפשר לבנות עליה שיטה. "עבר" = לא נמצא שום דפוס (p גדול מ־${fmt(thr,4)}, אחרי תיקון לריבוי מבחנים).</p>
+    <div class="scroll" style="max-height:none"><table class="tbl crack-tbl"><thead><tr><th>מבחן</th><th>מה הוא מחפש</th><th>תוצאה</th><th>p</th><th></th></tr></thead><tbody>
+    ${tests.map(t=>`<tr><td><b>${t.name}</b></td><td class="small">${t.what}</td><td class="num small">${t.stat}</td><td class="num">${fmt(t.p,3)}</td><td>${t.p<thr?'<span class="pill bad">דפוס!</span>':'<span class="pill good">עבר</span>'}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="small" style="margin:10px 0 0"><b>${failed.length?`נמצאה חריגה ב־${failed.length} מבחנים. שווה לבדוק אם היא נשמרת בהגרלות הבאות.`:`ההגרלות עברו את כל ${tests.length} המבחנים.`}</b> ${failed.length?'':'אין "קוד" לפצח: אין מספר מועדף, אין זיכרון בין הגרלות, אין מחזוריות ואין הבדל בין ימים. כל הגרלה מתנהגת בדיוק כמו בחירה אקראית של 6 כדורים מתוך 37.'}</p>`;
+  $('#jrWhy').innerHTML=`<h3>למה אי אפשר "לסדר" את המספרים הנכונים</h3>
+    <ul class="small" style="margin:6px 0 0;padding-inline-start:18px;line-height:1.7">
+      <li><b>אין קוד.</b> ההגרלה נעשית במכונה פיזית עם כדורים, בפיקוח, בשידור. אין נוסחה או "זרע" של מחשב שאפשר לגלות. מה שנשאר לנתח הוא רק תוצאות העבר, והמבחנים למעלה מראים שאין בהן דפוס.</li>
+      <li><b>לכדורים אין זיכרון.</b> כל מספר עולה בסיכוי 6 ל־37 בכל הגרלה, בלי קשר למה שיצא קודם. לכן שכיחות, פערים, זוגות ומרקוב לא מנבאים, וזה מה שראינו ב־70 השיטות.</li>
+      <li><b>מה שנראה כמו דפוס הוא רעש.</b> כשבודקים הרבה שיטות, תמיד חלק נראות טובות במקרה. האלגוריתם הגנטי, שהותאם הכי טוב לעבר, יצא האחרון על העתיד.</li>
+      <li><b>מה כן עבד:</b> הניחושים שלי תפסו ${JR.hits} מספרים ב־${JR.n} טפסים, ${JR.g3===1?'וטופס אחד תפס':`ו־${JR.g3} טפסים תפסו`} 3 ומעלה. זו בדיוק התוצאה שמצפים לה מטפסים אקראיים. זה לא כישלון של השיטה וגם לא הצלחה שלה. זה המזל של ההגרלה.</li>
+      <li><b>מה אני מתקן אצלי:</b> לא אציג יותר שיטה כאילו היא "מדויקת יותר", ואת כל הניחושים אבדוק כאן מול התוצאות, כדי שכל אחד יוכל לראות את האמת.</li>
+    </ul>`;
+}
+
 /* ===== informed ticket =====
    One ticket per draw, fixed for that draw: seeded by the draw number so it never changes after the fact
    and can be scored honestly. Mild lean to numbers drawn more often in the previous 1000 draws, then
@@ -2181,6 +2279,7 @@ function go(p, scroll=true){
   if(rb && sec){ if(p!=='predict' && STATS_PAGES.includes(p)){ const head=sec.querySelector(':scope>.sec-head'); if(head) head.after(rb); else sec.prepend(rb); } else if(rb.parentElement.id!=='hero') $('#hero').appendChild(rb); }
   if(p==='backtest') runBacktest();
   if(p==='lab') setTimeout(runLab,30);
+  if(p==='journal'){ renderJournal(); renderCrack(); if(typeof mountSay==='function') mountSay(); countUps($('#p-journal')); }
   if(typeof renderCart==='function') renderCart();
   if(A11Y.auto && scroll) setTimeout(()=>{ const sec=$('#p-'+p); if(sec) say(pageSpeech(sec),sec.querySelector('.sec-head .say'),sec); },300);
   redrawCharts();
