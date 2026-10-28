@@ -421,9 +421,9 @@ html.no-motion .tab-ink{transition:none}
 .jr-row .h{font-family:var(--display);font-size:24px;line-height:1;min-width:46px}
 .ok{color:var(--good)} .warn{color:var(--bad)}
 .crack-tbl td:nth-child(3),.crack-tbl td:nth-child(4){white-space:nowrap}
-#labCharts{--s1:#2340c8;--s2:#d52b3a;--s3:#14936a;--vz-grid:color-mix(in srgb,var(--ink) 9%,transparent);--vz-axis:var(--muted)}
-@media (prefers-color-scheme: dark){ :root:where(:not([data-theme="light"])) #labCharts{--s1:#7184f5;--s2:#f04f5c;--s3:#199e70} }
-:root[data-theme="dark"] #labCharts{--s1:#7184f5;--s2:#f04f5c;--s3:#199e70}
+#labCharts,#winCard{--s1:#2340c8;--s2:#d52b3a;--s3:#14936a;--vz-grid:color-mix(in srgb,var(--ink) 9%,transparent);--vz-axis:var(--muted)}
+@media (prefers-color-scheme: dark){ :root:where(:not([data-theme="light"])) #labCharts,:root:where(:not([data-theme="light"])) #winCard{--s1:#7184f5;--s2:#f04f5c;--s3:#199e70} }
+:root[data-theme="dark"] #labCharts,:root[data-theme="dark"] #winCard{--s1:#7184f5;--s2:#f04f5c;--s3:#199e70}
 #labCharts .chartbox{overflow-x:auto}
 @media (max-width:640px){ #labCharts .vz{min-width:640px} }
 .swipe{display:none;font-size:12px;color:var(--muted);margin:2px 0 4px}
@@ -435,6 +435,7 @@ html.no-motion .tab-ink{transition:none}
 .vz .bar{fill:var(--s1);opacity:.28;transition:opacity .15s}
 .vz .bar.on{opacity:1}
 .vz .hit:hover .bar{opacity:.55}.vz .hit:hover .bar.on{opacity:1}
+.vz .tick{stroke:var(--ink);stroke-width:2.5;stroke-linecap:round}
 .vz .ref{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4;fill:none}
 .vz .band{fill:var(--muted);opacity:.13}
 .vz .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
@@ -629,6 +630,7 @@ html.hc .sc{border-color:#000;color:#000}
     <div class="card" id="jrSum"></div>
     <div class="card" style="margin-top:16px" id="jrList"></div>
     <div class="card" style="margin-top:16px" id="crack"></div>
+    <div class="card" style="margin-top:16px" id="winCard"></div>
     <div class="card" style="margin-top:16px" id="jrWhy"></div>
   </section>
 
@@ -1715,6 +1717,44 @@ function renderJournal(){
     <p class="small" style="margin:12px 0 0">${hits/(n||1)>=E?'הניחושים תפסו קצת יותר מהצפוי במזל, אבל במדגם כזה זה עדיין בגדר מזל.':'הניחושים תפסו קצת פחות מהצפוי במזל, ובמדגם כזה זה עדיין בגדר מזל.'} הפילוג (${dist.slice(0,4).map((c,i)=>`${c===1?'טופס אחד':c+' טפסים'} עם ${i}`).join(', ')}) נראה בדיוק כמו הפילוג של טפסים אקראיים. ההגרלה הבאה תיבדק כאן לבד.</p>`;
 }
 
+/* ===== first-prize winners per draw: what happened against what chance predicts ===== */
+function renderWinners(){
+  const box=$('#winCard'); if(!box) return;
+  const D=cur.filter(d=>d.w6!==null&&d.w6!==undefined).slice().reverse(); if(D.length<50){ box.innerHTML=''; return; }
+  const n=D.length, obs=[0,0,0,0,0]; D.forEach(d=>obs[Math.min(4,d.w6)]++);
+  const lam=D.reduce((a,d)=>a+d.w6,0)/n, pois=k=>Math.exp(-lam)*Math.pow(lam,k)/[1,1,2,6,24][k], exp=[0,1,2,3].map(k=>n*pois(k)); exp.push(n-exp.reduce((a,b)=>a+b,0));
+  const tables=lam*C(N_MAIN,PICK)*N_STRONG; let run=0, best=0, bestEnd=null; D.forEach(d=>{ if(d.w6===0){ run++; if(run>best){ best=run; bestEnd=d; } } else run=0; });
+  const multi=obs[2]+obs[3]+obs[4], pct=x=>fmt(100*x,1)+'%';
+  /* chart for 1+ winners (no-winner draws dwarf the scale, so they get their own figure) */
+  const W=560, H=210, m={l:34,r:10,t:22,b:30}, iw=W-m.l-m.r, ih=H-m.t-m.b, cats=[1,2,3,4], lab=['זוכה אחד','שני זוכים','שלושה','ארבעה ומעלה'];
+  const ymax=Math.ceil(Math.max(obs[1],exp[1])/50)*50, bw=iw/cats.length, y=v=>m.t+ih-v/ymax*ih;
+  let g=''; for(let v=0;v<=ymax;v+=50) g+=`<line class="grid" x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  const bars=cats.map((k,i)=>{ const x0=m.l+i*bw+bw*.22, w=bw*.56, h=ih-(y(obs[k])-m.t), r=Math.min(4,h/2,w/2);
+    const bar=h>0?`<path class="bar on" d="M${x0},${m.t+ih} V${y(obs[k])+r} Q${x0},${y(obs[k])} ${x0+r},${y(obs[k])} H${x0+w-r} Q${x0+w},${y(obs[k])} ${x0+w},${y(obs[k])+r} V${m.t+ih} Z"/>`:'';
+    return `<g class="hit" data-tip="${lab[i]}: קרה ב־${obs[k]} הגרלות · צפוי במזל: ${fmt(exp[k],1)}"><rect x="${m.l+i*bw}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>${bar}
+      <line class="tick" x1="${x0-6}" x2="${x0+w+6}" y1="${y(exp[k])}" y2="${y(exp[k])}"/>
+      <text class="lab" x="${x0+w/2}" y="${Math.min(y(obs[k]),y(exp[k]))-6}" text-anchor="middle">${obs[k]}</text>
+      <text x="${x0+w/2}" y="${H-10}" text-anchor="middle">${lab[i]}</text></g>`; }).join('');
+  box.innerHTML=`<div class="eyebrow">"רק אחד זוכה בכל פעם?"</div><h3 style="font-family:var(--display);font-size:34px;line-height:1">כמה זכו בפרס הראשון בכל הגרלה</h3>
+    <p class="muted small" style="margin:4px 0 10px">${fmt(n)} הגרלות שבהן מספר הזוכים ידוע, מ־${dateHe(D[0].date)} עד ${dateHe(D[n-1].date)}. "צפוי במזל" הוא מה שהיה יוצא אילו בכל הגרלה נשלחו כ־${fmt(Math.round(tables/1e5)/10,1)} מיליון טבלאות וכל אחת נבחרה בלי קשר לאחרות.</p>
+    <div class="goal-grid">
+      <div><b>${pct(obs[0]/n)}</b><span>מההגרלות הסתיימו בלי אף זוכה (${fmt(obs[0])} הגרלות; צפוי ${fmt(exp[0],0)})</span></div>
+      <div><b>${fmt(obs[1])}</b><span>הגרלות עם זוכה אחד בדיוק (צפוי ${fmt(exp[1],0)})</span></div>
+      <div><b>${fmt(multi)}</b><span>הגרלות עם שני זוכים ומעלה (צפוי ${fmt(exp[2]+exp[3]+exp[4],1)})</span></div>
+      <div><b>${best}</b><span>הרצף הארוך ביותר בלי זוכה, עד ${bestEnd?dateHe(bestEnd.date):'—'}</span></div>
+    </div>
+    <div class="chartbox" style="margin-top:12px;max-width:620px"><svg class="vz" viewBox="0 0 ${W} ${H}" role="img" aria-label="מספר ההגרלות לפי מספר הזוכים, מול הצפוי במזל">${g}${bars}</svg></div>
+    <div class="vz-legend"><span><i style="background:var(--s1)"></i>מה קרה</span><span><i style="background:var(--ink);height:3px"></i>מה צפוי במזל</span></div>
+    <details style="margin-top:8px"><summary class="small">הצג כטבלה</summary><table class="tbl" style="max-width:520px"><thead><tr><th>זוכים בהגרלה</th><th>קרה</th><th>צפוי במזל</th></tr></thead><tbody>
+      ${['אף אחד',...lab].map((l,k)=>`<tr><td>${l}</td><td class="num"><b>${fmt(obs[k])}</b></td><td class="num">${fmt(exp[k],1)}</td></tr>`).join('')}</tbody></table></details>
+    <ul class="small" style="margin:12px 0 0;padding-inline-start:18px;line-height:1.7">
+      <li><b>ברוב ההגרלות אף אחד לא זוכה.</b> יש ${fmt(C(N_MAIN,PICK)*N_STRONG)} צירופים, ובכל הגרלה נשלחים בממוצע רק כ־${fmt(Math.round(tables/1e5)/10,1)} מיליון. לכן בממוצע זוכים ${fmt(lam,2)} אנשים בהגרלה.</li>
+      <li><b>למה נדמה ש"תמיד יש אחד":</b> על הגרלה בלי זוכה לא מדווחים. כשמישהו זוכה אחרי רצף של הגרלות ריקות והקופה גדולה, זו כותרת.</li>
+      <li><b>למה יש קצת יותר הגרלות עם כמה זוכים:</b> אנשים בוחרים צירופים דומים (תאריכים, רצפים, אותם מספרים), וכשצירוף כזה עולה, כמה אנשים מתחלקים בו. גם כשהקופה גדולה נשלחים יותר טפסים. זו הסיבה שהטופס המושכל מסנן צירופים פופולריים.</li>
+      <li><b>הנתונים מתאימים להגרלה הוגנת.</b> אילו מישהו היה מסדר את התוצאות, היינו רואים פחות מדי הגרלות ריקות או זוכה כמעט תמיד. זה לא מה שקורה.</li>
+    </ul>`;
+}
+
 /* ===== trying to crack the draw: randomness tests on every draw in the current format ===== */
 const normCdf=z=>{ const t=1/(1+0.2316419*Math.abs(z)), d=0.3989423*Math.exp(-z*z/2), p=d*t*(0.3193815+t*(-0.3565638+t*(1.781478+t*(-1.821256+t*1.330274)))); return z>0?1-p:p; };
 const chiStat=(obs,exp)=>obs.reduce((a,o,i)=>a+(exp[i]>0?(o-exp[i])**2/exp[i]:0),0);
@@ -2356,7 +2396,7 @@ function go(p, scroll=true){
   if(rb && sec){ if(p!=='predict' && STATS_PAGES.includes(p)){ const head=sec.querySelector(':scope>.sec-head'); if(head) head.after(rb); else sec.prepend(rb); } else if(rb.parentElement.id!=='hero') $('#hero').appendChild(rb); }
   if(p==='backtest') runBacktest();
   if(p==='lab') setTimeout(runLab,30);
-  if(p==='journal'){ renderJournal(); renderCrack(); if(typeof mountSay==='function') mountSay(); countUps($('#p-journal')); }
+  if(p==='journal'){ renderJournal(); renderCrack(); renderWinners(); if(typeof mountSay==='function') mountSay(); countUps($('#p-journal')); }
   if(typeof renderCart==='function') renderCart();
   if(A11Y.auto && scroll) setTimeout(()=>{ const sec=$('#p-'+p); if(sec) say(pageSpeech(sec),sec.querySelector('.sec-head .say'),sec); },300);
   redrawCharts();
