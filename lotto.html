@@ -462,6 +462,38 @@ html.no-motion .tab-ink{transition:none}
 .scan-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--line)}
 .scan-row .balls{flex-wrap:nowrap;gap:3px}
 @media (prefers-reduced-motion:reduce){ .tray .ball{animation:none} .live-now i{animation:none} }
+.top .wrap{gap:18px}
+nav.groups{display:flex;gap:2px;flex:1;justify-content:flex-start;overflow-x:auto;scrollbar-width:none}
+nav.groups::-webkit-scrollbar{display:none}
+nav.groups button{position:relative;border:0;background:none;font:inherit;font-family:var(--display);font-size:24px;font-weight:700;letter-spacing:.02em;line-height:1;color:var(--muted);padding:10px 12px 8px;cursor:pointer;white-space:nowrap;transition:color .2s}
+nav.groups button::after{content:"";position:absolute;inset-inline:12px;bottom:2px;height:3px;border-radius:2px;background:var(--print);transform:scaleX(0);transition:transform .3s cubic-bezier(.3,1.3,.5,1)}
+nav.groups button:hover{color:var(--ink)}
+nav.groups button.on{color:var(--ink)}
+nav.groups button.on::after{transform:scaleX(1)}
+@media (max-width:640px){ nav.groups button{font-size:20px;padding:10px 7px 8px} nav.groups button::after{inset-inline:7px} .top .wrap{gap:8px} }
+@media (max-width:520px){ .top .brand{display:none} #themeBtn{display:none} nav.groups{justify-content:space-between} nav.groups button{font-size:19px;padding:10px 4px 8px} nav.groups button::after{inset-inline:4px} }
+.subbar{border-top:1px solid var(--line);background:color-mix(in srgb,var(--bg) 92%,transparent)}
+.subbar .wrap{height:auto!important;padding-block:6px}
+.subbar[hidden]{display:none}
+nav.tabs{flex:1}
+nav.tabs button[hidden]{display:none}
+/* the check page picker is a lottery slip: tap a number and the pen circles it */
+.picker{grid-template-columns:repeat(10,minmax(0,1fr));gap:4px;direction:ltr}
+.picker button{position:relative;aspect-ratio:1/.82;border-radius:3px;border:1px solid color-mix(in srgb,var(--print) 45%,transparent);background:var(--paper);color:color-mix(in srgb,var(--print) 85%,var(--ink));font-family:var(--display);font-size:clamp(18px,3vw,24px);font-weight:400;line-height:1}
+.picker button:hover{background:color-mix(in srgb,var(--pen) 7%,var(--paper))}
+.picker button.on{background:color-mix(in srgb,var(--pen) 10%,var(--paper));color:var(--ink);font-weight:700;border-color:color-mix(in srgb,var(--print) 45%,transparent)}
+.picker.strongs{grid-template-columns:repeat(7,minmax(0,1fr));width:calc(70% - 1.2px)}
+.picker.strongs button.on{background:color-mix(in srgb,var(--pen) 10%,var(--paper));color:var(--ink);border-color:color-mix(in srgb,var(--print) 45%,transparent)}
+.picker button svg{position:absolute;inset:-5px;width:calc(100% + 10px);height:calc(100% + 10px);pointer-events:none;overflow:visible}
+.picker button svg path{fill:none;stroke:var(--pen);stroke-width:2.4;vector-effect:non-scaling-stroke;stroke-linecap:round;stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:pen .35s cubic-bezier(.4,.1,.3,1) forwards}
+@media (prefers-reduced-motion:reduce){ .picker button svg path{animation:none;stroke-dashoffset:0} }
+html.no-motion .picker button svg path{stroke-dashoffset:0}
+#p-check .grid2>.card:first-child{background:var(--paper);border-radius:6px 6px 14px 14px;position:relative;overflow:hidden}
+#p-check .grid2>.card:first-child::before{content:"";position:absolute;inset:0 0 auto 0;height:6px;background:repeating-linear-gradient(90deg,var(--print) 0 14px,transparent 14px 22px)}
+#p-check .grid2>.card:first-child .eyebrow{color:var(--print)}
+/* small balls: a regular face reads better than the condensed display face */
+.ball.xs{font-family:'IBM Plex Sans Hebrew',sans-serif;font-size:11px;font-weight:700;padding-top:0}
+.tbl .ball.xs{font-size:10.5px}
 .reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
 html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
 html.no-motion .sc svg path{stroke-dashoffset:0}
@@ -477,24 +509,33 @@ html.hc .sc{border-color:#000;color:#000}
 <header class="top">
   <div class="wrap">
     <div class="brand"><span class="dot"></span><span>לוטו · מרכז ניתוח</span></div>
-    <nav class="tabs" id="tabs" aria-label="עמודי האתר">
+    <nav class="groups" id="groups" aria-label="אזורי האתר">
+      <button data-g="draw" class="on">הגרלה</button>
+      <button data-g="forms">טפסים</button>
+      <button data-g="stats">ניתוח</button>
+      <button data-g="algo">אלגוריתמים</button>
+      <button data-g="data">נתונים</button>
+    </nav>
+    <button class="iconbtn" id="a11yBtn" aria-label="נגישות והקראה" aria-expanded="false" aria-controls="a11y" title="נגישות והקראה"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v5m0 0l-3.5 6.5M12 15l3.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
+    <button class="iconbtn" id="themeBtn" title="מצב תצוגה" aria-label="מצב תצוגה">◐</button>
+  </div>
+  <div class="subbar" id="subbar"><div class="wrap">
+    <nav class="tabs" id="tabs" aria-label="עמודים באזור הזה">
       <button data-p="predict" class="on">תחזית</button>
       <button data-p="cart">טפסים ועלות</button>
+      <button data-p="gen">מחולל טפסים</button>
+      <button data-p="check">בדיקת טופס</button>
       <button data-p="overview">סקירה</button>
       <button data-p="freq">שכיחות</button>
       <button data-p="gaps">פערים</button>
       <button data-p="pairs">זוגות</button>
       <button data-p="dist">התפלגויות</button>
       <button data-p="lab">אלגוריטמים</button>
-      <button data-p="journal">יומן ופיצוח</button>
       <button data-p="backtest">בדיקה לאחור</button>
-      <button data-p="gen">מחולל טפסים</button>
-      <button data-p="check">בדיקת טופס</button>
+      <button data-p="journal">יומן ופיצוח</button>
       <button data-p="data">נתונים</button>
     </nav>
-    <button class="iconbtn" id="a11yBtn" aria-label="נגישות והקראה" aria-expanded="false" aria-controls="a11y" title="נגישות והקראה"><svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="12" cy="4" r="2" fill="currentColor"/><path d="M4 8.5l8 1.5 8-1.5M12 10v5m0 0l-3.5 6.5M12 15l3.5 6.5" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/></svg></button>
-    <button class="iconbtn" id="themeBtn" title="מצב תצוגה" aria-label="מצב תצוגה">◐</button>
-  </div>
+  </div></div>
 </header>
 
 <a class="skip" href="#smart">דלג לטופס המושכל</a>
@@ -869,6 +910,7 @@ html.hc .sc{border-color:#000;color:#000}
     <button class="btn" data-a="contrast" aria-pressed="false">ניגודיות גבוהה</button>
     <button class="btn" data-a="motion" aria-pressed="false">בלי אנימציות</button>
     <button class="btn" data-a="links" aria-pressed="false">הדגשת קישורים</button>
+    <button class="btn" data-a="theme">מצב כהה / בהיר</button>
     <button class="btn" data-a="reset">איפוס</button>
   </div>
   <p class="muted small" id="a11yVoice" style="margin:10px 0 0"></p>
@@ -1218,6 +1260,7 @@ function setupA11y(){
     if(b.dataset.say==='selection'){ const t=String(getSelection()||'').trim(); return t? say(t) : toast('סמנו קודם טקסט בעמוד'); }
     if(b.dataset.say==='page'){ const sec=$('section.page.on'); return say(document.body.dataset.page==='predict' ? [speakNext(), speakSlip(), speakScore()].join('\n') : pageSpeech(sec),null,sec); }
     const a=b.dataset.a; if(!a) return;
+    if(a==='theme'){ $('#themeBtn').click(); return; }
     if(a==='font+') A11Y.fs=Math.min(1.6,+(A11Y.fs+.1).toFixed(1)); if(a==='font-') A11Y.fs=Math.max(.8,+(A11Y.fs-.1).toFixed(1));
     if(a==='contrast') A11Y.hc=!A11Y.hc; if(a==='motion') A11Y.motion=!A11Y.motion; if(a==='links') A11Y.links=!A11Y.links;
     if(a==='reset') Object.assign(A11Y,{fs:1,hc:false,motion:false,links:false,rate:0.95,auto:false,voice:''});
@@ -2499,7 +2542,11 @@ function buildPickers(){
   $('#pickMain').innerHTML = NUMS.map(n=>`<button type="button" data-n="${n}">${n}</button>`).join('');
   $('#pickStrong').innerHTML = [...Array(N_STRONG)].map((_,i)=>`<button type="button" data-s="${i+1}">${i+1}</button>`).join('');
 }
-function syncPickers(){ $$('#pickMain button').forEach(b=>b.classList.toggle('on',picked.has(+b.dataset.n))); $$('#pickStrong button').forEach(b=>b.classList.toggle('on',+b.dataset.s===pickedS)); }
+function syncPickers(){
+  const mark=(b,on,i)=>{ const had=b.classList.contains('on'); b.classList.toggle('on',on); b.setAttribute('aria-pressed',on);
+    if(on&&!had) b.insertAdjacentHTML('beforeend',penSvg(i).replace(/--d:[\d.]+s/,'--d:0s')); if(!on) b.querySelectorAll('svg').forEach(x=>x.remove()); };
+  $$('#pickMain button').forEach(b=>mark(b,picked.has(+b.dataset.n),+b.dataset.n));
+  $$('#pickStrong button').forEach(b=>mark(b,+b.dataset.s===pickedS,+b.dataset.s)); }
 const PRIZE = (h,s) => h===6?(s?'6 + חזק (פרס ראשון)':'6 (פרס שני)'):h===5?(s?'5 + חזק':'5'):h===4?(s?'4 + חזק':'4'):h===3?(s?'3 + חזק':'3'):null;
 const PRIZE_ORDER = ['6 + חזק (פרס ראשון)','6 (פרס שני)','5 + חזק','5','4 + חזק','4','3 + חזק','3'];
 function renderCheck(){
@@ -2555,13 +2602,20 @@ function download(content,type,name){ const b=new Blob([content],{type}); const 
 
 /* ---------- events ---------- */
 const STATS_PAGES=['predict','overview','freq','gaps','pairs','dist'];
+const GROUPS={draw:['predict'], forms:['cart','gen','check'], stats:['overview','freq','gaps','pairs','dist'], algo:['lab','backtest','journal'], data:['data']};
+const groupOf=p=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(p))||'draw';
+const lastInGroup={};
+function syncGroups(p){ const g=groupOf(p); lastInGroup[g]=p;
+  $$('#groups button').forEach(b=>{ const on=b.dataset.g===g; b.classList.toggle('on',on); b.setAttribute('aria-current',on?'true':'false'); });
+  $$('#tabs button').forEach(b=>b.hidden=!GROUPS[g].includes(b.dataset.p));
+  $('#subbar').hidden=GROUPS[g].length<2; }
 function go(p, scroll=true){
   if(!document.getElementById('p-'+p)) p='predict';
   const prev=document.body.dataset.page;
   document.body.dataset.page=p; document.body.classList.toggle('show-range',STATS_PAGES.includes(p));
   $$('#tabs button').forEach(b=>{ const on=b.dataset.p===p; b.classList.toggle('on',on); b.setAttribute('aria-selected',on); if(on) b.setAttribute('aria-current','page'); else b.removeAttribute('aria-current'); });
   $$('section.page').forEach(s=>{ const on=s.id==='p-'+p; s.classList.toggle('on',on); if(on && prev!==p){ s.classList.remove('enter'); void s.offsetWidth; s.classList.add('enter'); } });
-  moveTabInk();
+  syncGroups(p); moveTabInk();
   /* the analysis-range bar sits under the page title; on the home screen it stays below the ticket */
   const rb=$('.rangebar'), sec=document.getElementById('p-'+p);
   if(rb && sec){ if(p!=='predict' && STATS_PAGES.includes(p)){ const head=sec.querySelector(':scope>.sec-head'); if(head) head.after(rb); else sec.prepend(rb); } else if(rb.parentElement.id!=='hero') $('#hero').appendChild(rb); }
@@ -2594,6 +2648,7 @@ function countUps(root){
     requestAnimationFrame(step); });
 }
 $('#tabs').addEventListener('click',e=>{ const b=e.target.closest('button'); if(b) go(b.dataset.p); });
+$('#groups').addEventListener('click',e=>{ const b=e.target.closest('button'); if(!b) return; const g=b.dataset.g; go(lastInGroup[g]||GROUPS[g][0]); });
 document.addEventListener('click',e=>{
   const g=e.target.closest('[data-goto]'); if(g){ e.preventDefault(); go(g.dataset.goto, !g.dataset.anchor); if(g.dataset.anchor) setTimeout(()=>document.getElementById(g.dataset.anchor).scrollIntoView({behavior:'smooth',block:'start'}),50); }
   const del=e.target.closest('[data-del]'); if(del){ userDraws=userDraws.filter(d=>keyOf(d)!==del.dataset.del); saveUser(); renderAll(); toast('ההגרלה נמחקה'); }
