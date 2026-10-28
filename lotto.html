@@ -597,6 +597,16 @@ html.hc .sc{border-color:#000;color:#000}
       <p class="muted small" id="labNote"></p>
     </div>
     <div class="card" style="margin-top:16px" id="labLast"></div>
+    <div class="card" style="margin-top:16px" id="labCalc">
+      <h3>מחשבון יעד: מה צריך כדי להגיע לסיכוי שאני רוצה</h3>
+      <div class="ctrl" style="margin:6px 0 10px">
+        <label for="goalHits">לתפוס לפחות</label>
+        <select id="goalHits"><option value="3">3 מספרים</option><option value="4" selected>4 מספרים</option><option value="5">5 מספרים</option><option value="6">6 מספרים</option></select>
+        <label for="goalPct">בסיכוי של</label>
+        <input type="number" id="goalPct" min="1" max="99" value="70" style="width:72px" inputmode="numeric"> <span>%</span>
+      </div>
+      <div id="goalOut"></div>
+    </div>
     <div class="card" style="margin-top:16px" id="labCost"></div>
   </section>
 
@@ -1223,6 +1233,7 @@ function setupCart(){
   $('#rowsCtrl').addEventListener('click',e=>{ const b=e.target.closest('[data-preset]'); if(!b) return; addForm(formType,+b.dataset.preset); toast(`נוסף ${b.textContent.trim()}`); });
   $('#formRows').addEventListener('change',updateAddPrice); $('#sysSize').addEventListener('change',updateAddPrice);
   $('#addForm').addEventListener('click',()=>{ addForm(formType, formType==='sys'?+$('#sysSize').value:+$('#formRows').value); toast('הטופס נוסף לסל'); });
+  ['goalHits','goalPct'].forEach(id=>$('#'+id).addEventListener('input',goalCalc));
   $('#barGo').addEventListener('click',()=>$('#cartSum').scrollIntoView({behavior:'smooth',block:'start'}));
   $('#planBtn').addEventListener('click',renderPlans); $('#budget').addEventListener('keydown',e=>{ if(e.key==='Enter') renderPlans(); });
   $('#forms').addEventListener('click',e=>{ const d=e.target.closest('[data-del]'), r=e.target.closest('[data-redo]');
@@ -1336,8 +1347,30 @@ function renderLab(){
     ${[8,9,10,11,12].map(k=>`<tr><td>שיטתי ${k}</td><td class="num">${shekel(C(k,6)*P)}</td><td class="num">1 ל־${fmt(Math.round(1/pk(k,4)))}</td><td class="num">1 ל־${fmt(Math.round(1/pk(k,5)))}</td><td class="num">1 ל־${fmt(Math.round(1/pk(k,6)))}</td></tr>`).join('')}
     </tbody></table></div>
     <p class="small" style="margin:10px 0 0">גם כאן כל שקל קונה את אותו סיכוי בממוצע. כיסוי לא משנה את התוחלת, רק מרכז את הכסף בהגרלה אחת. אפשר לבנות טופס שיטתי בעמוד <a href="#" data-goto="cart">טפסים ועלות</a>.</p>`;
+  goalCalc();
   if(typeof mountSay==='function') mountSay();
   countUps($('#p-lab'));
+}
+
+/* ===== goal calculator: what reaching a chosen probability really takes ===== */
+function goalCalc(){
+  const out=$('#goalOut'); if(!out) return;
+  const m=+$('#goalHits').value, q=Math.min(.99,Math.max(.01,(+$('#goalPct').value||70)/100)), P=TABLE_PRICE;
+  const pm=k=>{ let s=0; for(let j=m;j<=6;j++) s+=C(k,j)*C(N_MAIN-k,6-j)/C(N_MAIN,6); return s; };
+  const p1=pm(6), n=Math.ceil(Math.log(1-q)/Math.log(1-p1)), forms=Math.ceil(n/14);
+  let k=6; while(k<N_MAIN && pm(k)<q) k++;
+  const pct=x=>fmt(100*x,x<.01?2:0)+'%';
+  out.innerHTML=`<div class="goal-grid">
+      <div><b>1 ל־${fmt(Math.round(1/p1))}</b><span>הסיכוי של טופס אחד לתפוס ${m}+, בכל אלגוריטם</span></div>
+      <div><b>${fmt(n)}</b><span>טבלאות שונות שצריך בהגרלה אחת כדי להגיע ל־${pct(q)} (${fmt(forms)} טפסים מלאים)</span></div>
+      <div><b>${shekel(n*P)}</b><span>העלות של זה, בהגרלה אחת</span></div>
+      <div><b>${k} מספרים</b><span>טופס שיטתי שמגיע ל־${pct(q)}: ${fmt(C(k,6))} טבלאות, ${shekel(C(k,6)*P)}</span></div>
+    </div>
+    <p class="small" style="margin:10px 0 0">${m<=3? `זה יעד שאפשר להגיע אליו בסכום סביר. הפרס על ${m} מספרים קטן, ולכן ברוב ההגרלות הסכום שחוזר נמוך מהעלות.`
+      : `אין אלגוריטם שמגיע ל־${pct(q)} ל־${m} מספרים עם מעט טפסים. לפי 200 ההגרלות שבדקתי, אף שיטה לא תופסת ${m} מספרים יותר מבחירה אקראית, ולכן הדרך היחידה היא כמות: ${fmt(n)} טבלאות שונות. ${m===4?'פרס על 4 מספרים קטן בהרבה מהעלות הזו.':''}`}
+      בממוצע, כל שקל מחזיר אותו דבר בכל שיטה. כמות רק מרכזת את הכסף בהגרלה אחת.</p>
+    ${n<=70?`<div class="ctrl" style="margin-top:10px"><button class="btn primary" id="goalBuild">בנה לי ${fmt(n+n%2)} טבלאות (${shekel((n+n%2)*P)})</button><span class="muted small">טבלאות נמכרות בזוגות</span></div>`:''}`;
+  const b=$('#goalBuild'); if(b) b.onclick=()=>{ if(CART.length && !confirm('להחליף את הטפסים שכבר בסל?')) return; CART=[]; let left=n+(n%2); while(left>0){ const r=Math.min(14,left); CART.push(makeForm('reg',r)); left-=r; } saveCart(); renderCart(); toast('הטבלאות נוספו לסל'); go('cart'); };
 }
 
 /* ===== informed ticket =====
@@ -1816,7 +1849,7 @@ function genTickets(){
 /* tickets that share as few numbers as possible, strong numbers cycling through 1..7 */
 function coverSet(count, fixed, drawn){
   let best=null, bestScore=-1;
-  for(let attempt=0; attempt<60; attempt++){
+  for(let attempt=0, tries=Math.max(2,Math.floor(1200/Math.max(1,count))); attempt<tries; attempt++){
     const out=[], use=Array(N_MAIN+1).fill(0), strongs=[...Array(N_STRONG)].map((_,i)=>i+1);
     for(let i=strongs.length-1;i>0;i--){ const j=Math.floor(rnd01()*(i+1)); [strongs[i],strongs[j]]=[strongs[j],strongs[i]]; }
     for(let t=0;t<count;t++){
