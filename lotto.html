@@ -250,7 +250,7 @@ body{background-image:radial-gradient(color-mix(in srgb,var(--line) 70%,transpar
 .stage .nextdraw{border-top:1px solid var(--line)}
 .stage h2{font-size:clamp(46px,7vw,72px);letter-spacing:.01em}
 .stage .eyebrow{color:#ffb3ba;letter-spacing:.08em}
-.stage .countdown{font-family:var(--display);font-size:clamp(34px,5vw,48px);line-height:1;background:rgba(0,0,0,.25);border:1px solid var(--line);padding:8px 14px 4px;border-radius:12px;letter-spacing:.04em;direction:ltr}
+.stage .countdown{font-family:var(--display);font-size:clamp(34px,5vw,48px);line-height:1;background:rgba(0,0,0,.25);border:1px solid var(--line);padding:8px 14px 4px;border-radius:12px;letter-spacing:.04em;direction:rtl;unicode-bidi:plaintext}
 .stage .ball{--s:54px;box-shadow:inset 0 -4px 8px rgba(0,0,0,.18),0 8px 22px -6px rgba(0,0,0,.6),0 0 0 3px rgba(255,255,255,.06)}
 .stage .ball.strong{box-shadow:inset 0 -4px 8px rgba(0,0,0,.25),0 0 26px -2px rgba(255,77,92,.65)}
 @media (max-width:480px){.stage .ball{--s:40px}.stage .card{padding:14px}}
@@ -444,6 +444,24 @@ html.no-motion .tab-ink{transition:none}
 .vz .col:hover line{opacity:.35}
 .vz-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin:4px 0 0;direction:rtl}
 .vz-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-inline-end:6px}
+#ballsBg{position:absolute;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+.stage .glow,.stage .floater{z-index:0}
+.live-now{display:inline-flex;align-items:center;gap:8px;background:#d52b3a;color:#fff!important;border-color:#d52b3a!important;text-decoration:none}
+.live-now i{width:8px;height:8px;border-radius:50%;background:#fff;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:.2}}
+.dlg{border:1px solid var(--line);border-radius:18px;padding:16px;background:var(--surface);color:var(--ink);width:min(560px,calc(100vw - 24px));box-shadow:0 30px 80px -20px rgba(10,17,48,.6)}
+.dlg::backdrop{background:rgba(8,12,30,.6);backdrop-filter:blur(3px)}
+.dlg-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.dlg-head b{font-family:var(--display);font-size:30px;font-weight:700}
+#drumCv{width:100%;height:auto;display:block;border-radius:14px;background:radial-gradient(70% 90% at 50% 0%,#2b3ea8,#0a1130 75%)}
+.tray{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;min-height:56px;margin-top:10px;direction:ltr;padding:8px;border-radius:999px;background:var(--surface-2)}
+.tray .ball{--s:42px;animation:roll .6s cubic-bezier(.3,.7,.3,1) both}
+.qr-box{display:grid;place-items:center;background:#fff;border-radius:12px;padding:14px}
+.qr-box svg,.qr-box img{width:min(280px,70vw);height:auto;display:block}
+#scanVideo{width:100%;border-radius:12px;background:#000;aspect-ratio:4/3;object-fit:cover}
+.scan-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:6px 0;border-bottom:1px dashed var(--line)}
+.scan-row .balls{flex-wrap:nowrap;gap:3px}
+@media (prefers-reduced-motion:reduce){ .tray .ball{animation:none} .live-now i{animation:none} }
 .reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
 html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
 html.no-motion .sc svg path{stroke-dashoffset:0}
@@ -480,7 +498,7 @@ html.hc .sc{border-color:#000;color:#000}
 </header>
 
 <a class="skip" href="#smart">דלג לטופס המושכל</a>
-<div class="stage" id="stage"><span class="glow g1" aria-hidden="true"></span><span class="glow g2" aria-hidden="true"></span><span class="glow g3" aria-hidden="true"></span>
+<div class="stage" id="stage"><canvas id="ballsBg" aria-hidden="true"></canvas><span class="glow g1" aria-hidden="true"></span><span class="glow g2" aria-hidden="true"></span><span class="glow g3" aria-hidden="true"></span>
 <span class="floater" aria-hidden="true" style="width:70px;height:70px;top:18%;left:6%"></span><span class="floater" aria-hidden="true" style="width:38px;height:38px;top:62%;left:30%;animation-delay:-4s"></span><span class="floater" aria-hidden="true" style="width:54px;height:54px;top:12%;left:52%;animation-delay:-8s;animation-duration:18s"></span>
 <div class="wrap">
     <div class="hero-grid" id="stageGrid">
@@ -492,7 +510,7 @@ html.hc .sc{border-color:#000;color:#000}
         <div class="muted small" id="nextMeta" style="margin-bottom:12px"></div>
         <div class="eyebrow" style="margin-bottom:8px"><span id="nextModel">הטופס המושכל</span></div>
         <div class="balls" id="nextBalls"></div>
-        <div class="ctrl" style="margin-top:14px"><a class="btn primary" href="#smart" data-goto="predict" data-anchor="smart">לטופס המושכל ולמה הוא נבחר</a></div>
+        <div class="ctrl" style="margin-top:14px"><a class="btn primary" href="#smart" data-goto="predict" data-anchor="smart">לטופס המושכל ולמה הוא נבחר</a><a class="btn live-now" id="liveBtn" href="https://www.pais.co.il/info/live.aspx" target="_blank" rel="noopener" hidden><i></i>שידור חי עכשיו</a></div>
       </div>
       <div class="card lastdraw">
         <div class="meta">
@@ -501,6 +519,7 @@ html.hc .sc{border-color:#000;color:#000}
         </div>
         <div class="balls" id="lastBalls"></div>
         <div class="muted small" id="lastVsPred" style="margin-top:10px"></div>
+        <div class="ctrl" style="margin-top:12px"><button class="btn" id="replayBtn" type="button">▶ הדמיית ההגרלה</button><a class="btn" href="https://www.pais.co.il/lotto/archive.aspx" target="_blank" rel="noopener">🎬 הסרטון המקורי באתר הפיס</a></div>
         <div id="freshBanner"></div>
       </div>
     </div>
@@ -777,6 +796,12 @@ html.hc .sc{border-color:#000;color:#000}
       </div>
       <div class="card" id="checkOut"><div class="muted">בחרו 6 מספרים ומספר חזק.</div></div>
     </div>
+    <div class="card" id="scanCard" style="margin-top:16px">
+      <h3>בדיקה בסריקה</h3>
+      <p class="muted small" style="margin:-4px 0 10px">לכל טופס שנבנה באתר (הטופס המושכל או הסל) יש קוד QR. סורקים אותו במצלמת הטלפון אחרי ההגרלה, והאתר נפתח ובודק את כל הטבלאות מול התוצאה. את הברקוד שעל טופס שנקנה בדוכן אפשר לבדוק רק באפליקציה או באתר של מפעל הפיס, כי הוא מכיל מספר טופס ולא את המספרים.</p>
+      <div class="ctrl"><button class="btn primary" id="scanBtn" type="button">📷 סרוק קוד QR</button><a class="btn" href="https://www.pais.co.il/" target="_blank" rel="noopener">לבדיקת טופס מהדוכן באתר הפיס</a></div>
+      <div id="scanOut" style="margin-top:12px"></div>
+    </div>
   </section>
 
   <!-- DATA -->
@@ -849,8 +874,29 @@ html.hc .sc{border-color:#000;color:#000}
   <p class="muted small" id="a11yVoice" style="margin:10px 0 0"></p>
 </aside>
 <div class="tip" id="tip"></div>
+<dialog id="replayDlg" class="dlg" aria-label="הדמיית ההגרלה">
+  <div class="dlg-head"><b>הדמיית ההגרלה</b><button class="iconbtn" data-close aria-label="סגירה">✕</button></div>
+  <p class="muted small" style="margin:0 0 8px" id="replayMeta"></p>
+  <canvas id="drumCv" width="520" height="300"></canvas>
+  <div class="tray" id="tray" aria-live="polite"></div>
+  <p class="muted small" style="margin:8px 0 0">זו הדמיה של התוצאה, לא צילום של ההגרלה. סדר היציאה של הכדורים לא מתפרסם, ולכן הם מוצגים מהקטן לגדול.</p>
+  <div class="ctrl" style="margin-top:10px"><button class="btn primary" id="replayAgain" type="button">הפעל שוב</button><a class="btn" href="https://www.pais.co.il/lotto/archive.aspx" target="_blank" rel="noopener">🎬 הסרטון המקורי</a></div>
+</dialog>
+<dialog id="qrDlg" class="dlg" aria-label="קוד QR לבדיקה">
+  <div class="dlg-head"><b>קוד QR לבדיקה</b><button class="iconbtn" data-close aria-label="סגירה">✕</button></div>
+  <p class="small" style="margin:0 0 8px" id="qrMeta"></p>
+  <div id="qrBox" class="qr-box"></div>
+  <p class="muted small" style="margin:8px 0 0">שמרו את התמונה או צלמו את המסך. אחרי ההגרלה סורקים במצלמת הטלפון, והאתר בודק את הטבלאות מול התוצאה.</p>
+  <div class="ctrl" style="margin-top:10px"><a class="btn primary" id="qrSave" download="lotto-qr.gif">שמור כתמונה</a><button class="btn" id="qrCopy" type="button">העתק קישור</button></div>
+</dialog>
+<dialog id="scanDlg" class="dlg" aria-label="סריקת קוד QR">
+  <div class="dlg-head"><b>סריקת קוד QR</b><button class="iconbtn" data-close aria-label="סגירה">✕</button></div>
+  <video id="scanVideo" playsinline muted></video>
+  <p class="muted small" id="scanMsg" style="margin:8px 0 0">כוונו את המצלמה לקוד.</p>
+</dialog>
 <div class="cart-bar" id="cartBar" hidden><div><div class="small">סך הכול · <span id="barInfo"></span></div><b class="num" id="barTotal"></b></div><button class="btn" id="barGo">לסיכום המלא</button></div>
 
+<script src="vendor/qrcode.js"></script>
 <script>
 'use strict';
 /* ---------- constants ---------- */
@@ -1132,7 +1178,7 @@ function speakDiag(){ const S=SMART_STATS; if(!S) return '';
   השלישי, חיפוש מספרים שיוצאים יחד פשוט מצא הגרלה שכבר הייתה. צירוף מלא אף פעם לא חזר.
   מה כן אפשר לשפר? להתחלק בפרס עם פחות אנשים, ולכסות יותר מספרים כששולחים כמה טפסים.`; }
 function speakNext(){ const nd=nextDrawInfo.cache||nextDrawInfo(); const d=nd&&nd.iso;
-  return `ההגרלה הקרובה${nd&&nd.id?', מספר '+nd.id:''}${d?', ב'+heDate(d):''}, בעשר וחצי בערב.`+(SMART?` ${ticketSpeech(SMART,'והטופס המושכל שלה')}`:''); }
+  return `ההגרלה הקרובה${nd&&nd.id?', מספר '+nd.id:''}${d?', ב'+heDate(d):''}, והשידור מתחיל באחת עשרה בלילה.`+(SMART?` ${ticketSpeech(SMART,'והטופס המושכל שלה')}`:''); }
 function speakLast(){ const d=all[0]; if(!d) return '';
   const x=SMART_LAST; return `בהגרלה האחרונה, ב${heDate(d.date)}, עלו המספרים ${heList(d.nums)}, והמספר החזק ${heNum(d.strong)}.`+
     (x?` הטופס המושכל להגרלה הזאת תפס ${x.h===0?'אף מספר':x.h===1?'מספר אחד':heNum(x.h)+' מספרים'}${x.s?', וגם את החזק':''}.`:''); }
@@ -1264,8 +1310,9 @@ function renderCart(){
       <dt>סיכוי לפרס כלשהו (3+)</dt><dd id="sumAny">${tables?'מחשב…':'—'}</dd>
       <dt>סיכוי לפרס ראשון</dt><dd>${tables?'1 ל־'+fmt(Math.round(C(N_MAIN,PICK)*N_STRONG/tables)):'—'}</dd>
     </dl>
-    <div class="ctrl"><button class="btn" id="cartCopy" ${CART.length?'':'disabled'}>העתק הכול</button><button class="btn danger" id="cartClear" ${CART.length?'':'disabled'}>נקה סל</button></div>
+    <div class="ctrl"><button class="btn" id="cartCopy" ${CART.length?'':'disabled'}>העתק הכול</button><button class="btn danger" id="cartClear" ${CART.length?'':'disabled'}>נקה סל</button><button class="btn" id="cartQR" ${CART.some(f=>f.type!=='sys')?'':'disabled'}>QR לבדיקה</button></div>
     <p class="muted small" style="margin:10px 0 0">מחיר טבלה ${shekel(TABLE_PRICE)}, דאבל פי 2. הסיכויים לא מבטיחים זכייה. שחקו רק בסכום שנוח לכם להפסיד.</p>`;
+  $('#cartQR').onclick=()=>showQR(CART.flatMap(f=>f.type==='sys'?[]:f.rows),'הסל שלי');
   $('#cartClear').onclick=()=>{ if(confirm('למחוק את כל הטפסים מהסל?')){ CART=[]; saveCart(); renderCart(); } };
   $('#cartCopy').onclick=()=>{ const txt=CART.map((f,i)=>`טופס ${i+1} – ${describe(f)} (${shekel(formCost(f))})\n`+(f.type==='sys'?`${f.nums.join(' ')} | חזק ${f.strong}`:f.rows.map((r,j)=>`${j+1}) ${r.nums.join(' ')} | חזק ${r.strong}`).join('\n'))).join('\n\n')+`\n\nסך הכול: ${shekel(cost)}`;
     (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('כל הטפסים הועתקו'),()=>toast('ההעתקה נכשלה')); };
@@ -1805,6 +1852,127 @@ function renderCrack(){
     </ul>`;
 }
 
+/* ===== draw-night effects: bouncing balls behind the stage, a draw replay, QR codes to check tickets ===== */
+const motionOff=()=>A11Y.motion||matchMedia('(prefers-reduced-motion: reduce)').matches;
+const BALL_RING=n=>n<=9?'#d9a441':n<=19?'#4c8dc4':n<=29?'#4fa36b':'#a463b8';
+function paintBall(ctx,x,y,r,n,strong){
+  const g=ctx.createRadialGradient(x-r*.35,y-r*.4,r*.1,x,y,r);
+  if(strong){ g.addColorStop(0,'#ff9aa2'); g.addColorStop(.5,'#d52b3a'); g.addColorStop(1,'#7a1220'); } else { g.addColorStop(0,'#ffffff'); g.addColorStop(.55,'#f3f5fb'); g.addColorStop(1,'#c9d1e6'); }
+  ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+  if(!strong){ ctx.lineWidth=Math.max(1.5,r*.12); ctx.strokeStyle=BALL_RING(n); ctx.beginPath(); ctx.arc(x,y,r*.92,0,Math.PI*2); ctx.stroke(); }
+  if(r>=9){ ctx.fillStyle=strong?'#fff':'#161a23'; ctx.font=`700 ${Math.round(r*1.05)}px Karantina, 'IBM Plex Sans Hebrew', sans-serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillText(n,x,y+r*.06); }
+}
+/* physics for a set of balls inside a box or a circle */
+function stepBalls(B,dt,bounds){
+  const G=bounds.g||900;
+  for(const b of B){ b.vy+=G*dt; b.x+=b.vx*dt; b.y+=b.vy*dt;
+    if(bounds.circle){ const {cx,cy,R}=bounds.circle, dx=b.x-cx, dy=b.y-cy, d=Math.hypot(dx,dy);
+      if(d>R-b.r){ const nx=dx/d, ny=dy/d; b.x=cx+nx*(R-b.r); b.y=cy+ny*(R-b.r); const vn=b.vx*nx+b.vy*ny; if(vn>0){ b.vx-=1.85*vn*nx; b.vy-=1.85*vn*ny; } } }
+    else { if(b.x<b.r){ b.x=b.r; b.vx=Math.abs(b.vx)*.9; } if(b.x>bounds.w-b.r){ b.x=bounds.w-b.r; b.vx=-Math.abs(b.vx)*.9; }
+      if(b.y>bounds.h-b.r){ b.y=bounds.h-b.r; b.vy=-Math.abs(b.vy)*.82; if(Math.abs(b.vy)<120) b.vy=-(380+Math.random()*420); } if(b.y<b.r){ b.y=b.r; b.vy=Math.abs(b.vy); } } }
+  for(let i=0;i<B.length;i++) for(let j=i+1;j<B.length;j++){ const a=B[i], c=B[j], dx=c.x-a.x, dy=c.y-a.y, d=Math.hypot(dx,dy), m=a.r+c.r;
+    if(d>0&&d<m){ const nx=dx/d, ny=dy/d, o=(m-d)/2; a.x-=nx*o; a.y-=ny*o; c.x+=nx*o; c.y+=ny*o; const rv=(c.vx-a.vx)*nx+(c.vy-a.vy)*ny; if(rv<0){ a.vx+=rv*nx; a.vy+=rv*ny; c.vx-=rv*nx; c.vy-=rv*ny; } } }
+}
+/* the stage background: lotto balls bouncing behind the glass cards; a tap on the stage gives them a push */
+function setupBallsBg(){
+  const cv=$('#ballsBg'), stage=$('#stage'); if(!cv||!stage) return;
+  const ctx=cv.getContext('2d'); let W=0,H=0,dpr=1,B=[],run=false,last=0,visible=true;
+  const size=()=>{ const r=stage.getBoundingClientRect(); dpr=Math.min(2,devicePixelRatio||1); W=r.width; H=r.height; cv.width=W*dpr; cv.height=H*dpr; ctx.setTransform(dpr,0,0,dpr,0,0);
+    if(!W||!H) return;
+    if(!B.length){ const n=W<600?14:24; const nums=NUMS.slice().sort(()=>Math.random()-.5).slice(0,n);
+      B=nums.map((x,i)=>({n:x, strong:i<2, r:(W<600?11:14)+Math.random()*(W<600?7:12), x:Math.random()*W, y:Math.random()*H*.6, vx:(Math.random()-.5)*260, vy:(Math.random()-.5)*200})); } };
+  const draw=()=>{ ctx.clearRect(0,0,W,H); ctx.globalAlpha=.55; for(const b of B) paintBall(ctx,b.x,b.y,b.r,b.strong?1+(b.n%N_STRONG):b.n,b.strong); ctx.globalAlpha=1; };
+  const frame=t=>{ if(!run) return; const dt=Math.min(.033,(t-last)/1000||.016); last=t; stepBalls(B,dt,{w:W,h:H,g:700}); draw(); requestAnimationFrame(frame); };
+  const start=()=>{ if(!W||!H){ size(); } if(!W) return; if(run||motionOff()||!visible||document.hidden){ draw(); return; } run=true; last=performance.now(); requestAnimationFrame(frame); };
+  const stop=()=>{ run=false; };
+  size(); draw(); start();
+  addEventListener('resize',()=>{ size(); draw(); });
+  document.addEventListener('visibilitychange',()=>document.hidden?stop():start());
+  new IntersectionObserver(es=>{ visible=es[0].isIntersecting; if(visible){ size(); start(); } else stop(); }).observe(stage);
+  stage.addEventListener('pointerdown',e=>{ if(e.target.closest('a,button,.card')) return; const r=stage.getBoundingClientRect(), px=e.clientX-r.left, py=e.clientY-r.top;
+    B.forEach(b=>{ const dx=b.x-px, dy=b.y-py, d=Math.max(30,Math.hypot(dx,dy)); b.vx+=dx/d*600; b.vy+=dy/d*600-300; }); start(); });
+  setupBallsBg.restart=()=>{ stop(); start(); };
+}
+/* draw replay: 37 balls mixing in a drum, then the drawn numbers come out one by one, then the strong number */
+function playReplay(){
+  const d=all[0], dlg=$('#replayDlg'); if(!d||!dlg) return;
+  if(!dlg.open) dlg.showModal();
+  $('#replayMeta').textContent=`הגרלה ${d.id||''} · ${dateHe(d.date)}`;
+  const cv=$('#drumCv'), ctx=cv.getContext('2d'), W=cv.width, H=cv.height, tray=$('#tray'); tray.innerHTML='';
+  const drum={cx:W/2,cy:H/2,R:H/2-14};
+  let B=NUMS.map(n=>({n,r:12,x:drum.cx+(Math.random()-.5)*drum.R,y:drum.cy+(Math.random()-.5)*drum.R,vx:(Math.random()-.5)*500,vy:(Math.random()-.5)*500}));
+  const order=[...d.nums], start=performance.now(); let lastT=start, out=0, outBall=null, strongShown=false;
+  playReplay.id=(playReplay.id||0)+1; const myId=playReplay.id;
+  const reduce=motionOff();
+  if(reduce){ tray.innerHTML=d.nums.map(n=>ball(n,'')).join('')+`<span class="plus">+</span>`+sball(d.strong,''); }
+  const drawDrum=()=>{ ctx.clearRect(0,0,W,H);
+    ctx.save(); ctx.beginPath(); ctx.arc(drum.cx,drum.cy,drum.R+6,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,.06)'; ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle='rgba(200,215,255,.55)'; ctx.stroke(); ctx.restore();
+    B.forEach(b=>paintBall(ctx,b.x,b.y,b.r,b.n,false));
+    ctx.fillStyle='rgba(255,255,255,.08)'; ctx.fillRect(drum.cx-22,drum.cy+drum.R-2,44,18);
+    if(outBall) paintBall(ctx,outBall.x,outBall.y,17,outBall.n,false);
+    ctx.save(); ctx.beginPath(); ctx.ellipse(drum.cx-drum.R*.35,drum.cy-drum.R*.55,drum.R*.35,drum.R*.12,-.5,0,Math.PI*2); ctx.fillStyle='rgba(255,255,255,.10)'; ctx.fill(); ctx.restore(); };
+  const frame=t=>{ if(myId!==playReplay.id||!dlg.open) return; const dt=Math.min(.033,(t-lastT)/1000); lastT=t; const el=t-start;
+    /* air jets keep the balls tumbling */
+    B.forEach(b=>{ if(b.y>drum.cy+drum.R*.4){ b.vy-=2600*dt*(.6+Math.random()); b.vx+=(Math.random()-.5)*900*dt; } });
+    stepBalls(B,dt,{circle:drum,g:900});
+    if(el>1500+out*1100 && out<order.length && !outBall){ const n=order[out]; B=B.filter(b=>b.n!==n); outBall={n,x:drum.cx,y:drum.cy+drum.R-10,t:t}; }
+    if(outBall){ const k=Math.min(1,(t-outBall.t)/600); outBall.y=drum.cy+drum.R-10+k*40; if(k>=1){ tray.insertAdjacentHTML('beforeend',ball(outBall.n,'')); outBall=null; out++; } }
+    if(out>=order.length && !strongShown && el>1500+order.length*1100+400){ strongShown=true; tray.insertAdjacentHTML('beforeend',`<span class="plus">+</span>${sball(d.strong,'')}`); }
+    drawDrum(); if(!strongShown||el<1500+order.length*1100+1600) requestAnimationFrame(frame); };
+  if(reduce){ drawDrum(); return; }
+  requestAnimationFrame(frame);
+}
+/* QR: a link that opens the site and checks the tickets against the latest draw */
+const ticketsHash=list=>'check='+list.map(t=>t.nums.join('-')+'.'+t.strong).join('_');
+function parseTicketsHash(h){ const m=/^#?check=([\d._-]+)$/.exec(h||''); if(!m) return null;
+  const out=m[1].split('_').map(x=>{ const [a,s]=x.split('.'); const nums=a.split('-').map(Number); return {nums:nums.slice().sort((p,q)=>p-q), strong:+s}; })
+    .filter(t=>t.nums.length===PICK && new Set(t.nums).size===PICK && t.nums.every(n=>n>=1&&n<=N_MAIN) && t.strong>=1 && t.strong<=N_STRONG);
+  return out.length?out.slice(0,60):null; }
+function showQR(list,label){
+  const dlg=$('#qrDlg'); if(!dlg) return; const url=location.href.split('#')[0].split('?')[0]+'#'+ticketsHash(list);
+  $('#qrMeta').innerHTML=`<b>${label}</b> · ${list.length===1?'טבלה אחת':list.length+' טבלאות'}`;
+  if(typeof qrcode==='function'){ const q=qrcode(0,'M'); q.addData(url); q.make(); $('#qrBox').innerHTML=q.createSvgTag({cellSize:6,margin:2,scalable:true}); $('#qrSave').href=q.createDataURL(8,4); $('#qrSave').hidden=false; }
+  else { $('#qrBox').innerHTML=`<a href="${url}" style="word-break:break-all;color:#161a23">${url}</a>`; $('#qrSave').hidden=true; }
+  $('#qrCopy').onclick=()=>(navigator.clipboard?navigator.clipboard.writeText(url):Promise.reject()).then(()=>toast('הקישור הועתק'),()=>toast('ההעתקה נכשלה'));
+  dlg.showModal();
+}
+function renderScan(list){
+  const out=$('#scanOut'); if(!out) return; const d=cur[0]; if(!d){ out.innerHTML=''; return; }
+  const opts=cur.slice(0,12).map((x,i)=>`<option value="${i}">${x.id} · ${dateHe(x.date)}</option>`).join('');
+  const draw=cur[+(renderScan.idx||0)]||d;
+  let best=0; const rows=list.map((t,i)=>{ const h=t.nums.filter(x=>draw.nums.includes(x)).length, s=t.strong===draw.strong, pr=PRIZE(h,s); if(pr) best++;
+    return `<div class="scan-row"><span class="muted small">${i+1}</span><div class="balls start">${t.nums.map(n=>ball(n,'xs'+(draw.nums.includes(n)?' hit':''))).join('')}<span class="plus">+</span>${sball(t.strong,'xs'+(s?' hit':''))}</div><b class="num">${h}${s?' + חזק':''}</b>${pr?`<span class="pill good">${pr}</span>`:''}</div>`; }).join('');
+  out.innerHTML=`<div class="ctrl" style="margin-bottom:6px"><label for="scanDraw">בדיקה מול</label><select id="scanDraw">${opts}</select></div>
+    <div class="small" style="margin-bottom:6px">הגרלה ${draw.id}: <span class="balls start" style="display:inline-flex">${ballsHtml(draw,'xs')}</span></div>${rows}
+    <p class="small" style="margin:8px 0 0"><b>${best?(best===1?'טבלה אחת בדרגת זכייה':`${best} טבלאות בדרגת זכייה`):'אין טבלה בדרגת זכייה בהגרלה הזו'}</b>. סכומי הזכייה המדויקים מתפרסמים באתר מפעל הפיס.</p>`;
+  $('#scanDraw').value=String(renderScan.idx||0); $('#scanDraw').onchange=e=>{ renderScan.idx=+e.target.value; renderScan(list); };
+  renderScan.last=list;
+}
+async function startScan(){
+  const dlg=$('#scanDlg'), msg=$('#scanMsg'), v=$('#scanVideo');
+  if(!('BarcodeDetector' in window) || !navigator.mediaDevices){ toast('בדפדפן הזה אין סורק מובנה. פתחו את מצלמת הטלפון וכוונו לקוד'); return; }
+  let det; try{ det=new BarcodeDetector({formats:['qr_code']}); }catch(e){ toast('בדפדפן הזה אין סורק מובנה. פתחו את מצלמת הטלפון וכוונו לקוד'); return; }
+  let stream; try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}}); }catch(e){ toast('אין גישה למצלמה'); return; }
+  v.srcObject=stream; await v.play(); dlg.showModal(); msg.textContent='כוונו את המצלמה לקוד.';
+  const stop=()=>{ stream.getTracks().forEach(t=>t.stop()); if(dlg.open) dlg.close(); };
+  dlg.addEventListener('close',()=>stream.getTracks().forEach(t=>t.stop()),{once:true});
+  const tick=async()=>{ if(!dlg.open) return; try{ const r=await det.detect(v); const raw=r[0]&&r[0].rawValue; if(raw){ const h=raw.includes('#')?raw.slice(raw.indexOf('#')):raw, list=parseTicketsHash(h);
+        if(list){ stop(); renderScan.idx=0; renderScan(list); toast('הטופס נסרק'); return; } msg.textContent='זה לא קוד של האתר. ברקוד של טופס מהדוכן נבדק באפליקציית הפיס.'; } }catch(e){}
+    setTimeout(tick,250); };
+  tick();
+}
+function setupFx(){
+  setupBallsBg();
+  $('#replayBtn')&&$('#replayBtn').addEventListener('click',playReplay);
+  $('#replayAgain')&&$('#replayAgain').addEventListener('click',playReplay);
+  $$('.dlg [data-close]').forEach(b=>b.addEventListener('click',()=>b.closest('dialog').close()));
+  $$('.dlg').forEach(d=>d.addEventListener('click',e=>{ if(e.target===d) d.close(); }));
+  $('#scanBtn')&&$('#scanBtn').addEventListener('click',startScan);
+}
+/* live broadcast: on draw nights the lotto is broadcast from about 23:00 */
+function liveNow(){ const p=ilParts(new Date()), wd=p.weekday; const hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()); const [h,m]=hm.split(':').map(Number), mins=h*60+m;
+  return (wd==='Tue'||wd==='Sat') && mins>=22*60+50 && mins<=23*60+50; }
+
 /* ===== informed ticket =====
    One ticket per draw, fixed for that draw: seeded by the draw number so it never changes after the fact
    and can be scored honestly. Mild lean to numbers drawn more often in the previous 1000 draws, then
@@ -1843,12 +2011,13 @@ function renderSmart(){
     <div class="slip-label" style="margin-top:12px">מספר חזק</div>
     <div class="sgrid s7">${[...Array(N_STRONG)].map((_,i)=>`<div class="sc${t.strong===i+1?' on':''}">${i+1}${t.strong===i+1?penSvg(ci++):''}</div>`).join('')}</div>
     <div class="slip-foot"><div class="balls start">${t.nums.map(n=>ball(n,'sm')).join('')}<span class="plus">+</span>${sball(t.strong,'sm')}</div>
-      <button class="btn" id="slipCopy">העתק טופס</button></div>
+      <button class="btn" id="slipCopy">העתק טופס</button><button class="btn" id="slipQR" type="button">QR לבדיקה</button></div>
     <ul class="slip-why">
       <li><b>נבחר מתוך 1,000 ההגרלות האחרונות</b>, עם העדפה קלה למספרים שיצאו יותר. ההעדפה קלה בכוונה, כי השכיחות לא מנבאת (ראו אבחון למטה).</li>
       <li><b>מסונן נגד צירופים פופולריים:</b> לפחות 2 מספרים מעל 31, בלי רצפים, סכום ${sumOf(t.nums)} בטווח המרכזי. אם תזכו, תתחלקו עם פחות אנשים.</li>
       <li><b>קבוע להגרלה הזו.</b> הוא מתחלף לבד אחרי כל הגרלה, וכל טופס שהיה נבדק מול התוצאה שלו.</li>
     </ul>`;
+  $('#slipQR').onclick=()=>showQR([t],`הטופס המושכל להגרלה ${nextId}`);
   $('#slipCopy').onclick=()=>{ const txt=`${t.nums.join(' ')} | חזק ${t.strong}`; (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('הטופס הועתק'),()=>toast('ההעתקה נכשלה')); };
 
   const tr=smartTrack(100); SMART_LAST=tr[0]||null; SMART_TR=tr; const N=tr.length, hits=sumOf(tr.map(x=>x.h)), g3=tr.filter(x=>x.h>=3).length, sh=tr.filter(x=>x.s).length;
@@ -2145,7 +2314,7 @@ function evalPreset(p, n=300){
 /* next draw (Tuesday and Saturday evenings, Israel time) */
 function ilParts(d){ const p={}; new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jerusalem',year:'numeric',month:'2-digit',day:'2-digit',weekday:'short'}).formatToParts(d).forEach(x=>p[x.type]=x.value); return p; }
 function ilOffsetMin(d){ try{ const v=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Jerusalem',timeZoneName:'shortOffset'}).formatToParts(d).find(x=>x.type==='timeZoneName').value; const m=v.match(/GMT([+-]\d+)(?::(\d+))?/); return m? (+m[1])*60+(m[2]?Math.sign(+m[1])*+m[2]:0) : 180; }catch(e){ return 180; } }
-const DRAW_HOUR=22, DRAW_MIN=30;
+const DRAW_HOUR=23, DRAW_MIN=0;
 function drawInstant(y,m,d){ const g=new Date(Date.UTC(y,m-1,d,DRAW_HOUR,DRAW_MIN)); return new Date(g.getTime()-ilOffsetMin(g)*6e4); }
 function nextDrawInfo(){
   const now=new Date(); let t=null, iso=null;
@@ -2168,7 +2337,8 @@ let PRED=null;
 function renderNext(){
   const nd = nextDrawInfo.cache = nextDrawInfo();
   $('#nextTitle').innerHTML = nd.id ? `הגרלה <span class="num">${nd.id}</span>${nd.exact?'':' <span class="pill" data-tip="המאגר לא מעודכן, המספר מחושב לפי לוח ההגרלות">משוער</span>'}` : 'ההגרלה הבאה';
-  $('#nextMeta').textContent = nd.iso ? `יום ${dow(nd.iso)}, ${dateHe(nd.iso)}, בערב (שעה משוערת ${DRAW_HOUR}:${String(DRAW_MIN).padStart(2,'0')})` : '';
+  $('#nextMeta').textContent = nd.iso ? `יום ${dow(nd.iso)}, ${dateHe(nd.iso)}, בשידור החל מ־${DRAW_HOUR}:${String(DRAW_MIN).padStart(2,'0')}` : '';
+  const lv=$('#liveBtn'); if(lv) lv.hidden=!liveNow();
   tickCountdown();
   const st=SMART; $('#nextModel').textContent = 'הטופס המושכל';
   $('#nextBalls').innerHTML = st ? st.nums.map(n=>ball(n,'')).join('')+`<span class="plus">+</span>`+sball(st.strong,'') : '<span class="muted">אין מספיק נתונים</span>';
@@ -2483,12 +2653,15 @@ $('#pCopy').addEventListener('click',()=>{ const t=genPredTickets.last; if(!t){ 
 
 /* ---------- boot ---------- */
 (async function boot(){
-  buildPickers(); loadUser(); setupA11y(); setupCart();
+  buildPickers(); loadUser(); setupA11y(); setupCart(); setupFx();
   try{ baseDraws = await fetchBase(); }
   catch(e){ console.warn('lotto.csv not loaded', e); toast('לא ניתן לטעון את lotto.csv. גררו קובץ תוצאות לעמוד'); }
   renderAll();
   if(/[?&]voicegen\b/.test(location.search)){ await voiceGen(); return; }
-  go(location.hash.slice(1)||'predict',false); setTimeout(moveTabInk,400);
+  const scanned=parseTicketsHash(location.hash);
+  if(scanned){ go('check',false); renderScan.idx=0; renderScan(scanned); setTimeout(()=>$('#scanCard').scrollIntoView({behavior:'smooth',block:'start'}),300); }
+  else go(location.hash.slice(1)||'predict',false);
+  setTimeout(moveTabInk,400);
   loadVoiceManifest();
   if(document.fonts&&document.fonts.ready) document.fonts.ready.then(moveTabInk);
   /* keep an open tab current: re-check lotto.csv every 10 minutes and whenever the tab comes back into view */
@@ -2517,7 +2690,7 @@ async function refreshBase(){
     const fresh = await fetchBase();
     const top = d => d.length ? d[0].id+'|'+d[0].date : '';
     if(fresh.length && (fresh.length!==baseDraws.length || top(fresh)!==top(baseDraws))){
-      baseDraws = fresh; renderAll(); toast('נוספו תוצאות חדשות'); setTimeout(loadVoiceManifest,5*60e3);
+      baseDraws = fresh; renderAll(); if(renderScan.last) renderScan(renderScan.last); toast('נוספו תוצאות חדשות'); setTimeout(loadVoiceManifest,5*60e3);
     }
   }catch(e){ console.warn('refresh failed', e); }
   finally{ refreshBase.busy=false; }
