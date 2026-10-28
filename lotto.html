@@ -401,6 +401,8 @@ html.no-motion .tab-ink{transition:none}
 .lab-tbl .nm b{display:block}
 .lab-tbl .nm span{font-size:12px;color:var(--muted)}
 .lab-tbl .balls{flex-wrap:nowrap;gap:3px}
+.lab-tbl tr.more{display:none}
+.lab-tbl.all tr.more{display:table-row}
 .lab-tbl tr.meta td{background:color-mix(in srgb,var(--pen) 7%,transparent)}
 .lab-tbl tr.meta .nm b{color:var(--pen)}
 .meta-card{border-top:4px solid var(--pen)}
@@ -591,7 +593,7 @@ html.hc .sc{border-color:#000;color:#000}
 
   <!-- ALGORITHM LAB -->
   <section class="page" id="p-lab">
-    <div class="sec-head"><div><h2>מעבדת אלגוריטמים</h2><p>28 שיטות חיזוי, מהפשוטות ועד רשת עצבית ואלגוריתם גנטי, ושלושה מטא־אלגוריתמים שעובדים על כולן. כל אחת מציגה את הניחוש שלה להגרלה הקרובה, ואת התוצאות האמיתיות שלה ב־200 ההגרלות האחרונות, כשבכל הגרלה היא ראתה רק את מה שהיה ידוע לפניה.</p></div></div>
+    <div class="sec-head"><div><h2>מעבדת אלגוריטמים</h2><p>70 שיטות חיזוי, מהפשוטות ועד רשת עצבית ואלגוריתם גנטי, ושלושה מטא־אלגוריתמים שעובדים על כולן. כל אחת מציגה את הניחוש שלה להגרלה הקרובה, ואת התוצאות האמיתיות שלה ב־200 ההגרלות האחרונות, כשבכל הגרלה היא ראתה רק את מה שהיה ידוע לפניה.</p></div></div>
     <div class="card meta-card" id="labPick"></div>
     <div class="card" id="labGoal" style="margin-top:16px"></div>
     <div class="card" style="margin-top:16px">
@@ -1263,7 +1265,7 @@ function labSignals(h){
     if(t+1<n){ const prev=h[t+1].nums; for(const m of prev){ seenAfter[m]++; for(const x of a) tr[m][x]++; } }
     sf[h[t].strong]++; if(t<100) s100[h[t].strong]++; if(sgap[h[t].strong]<0) sgap[h[t].strong]=t; w*=0.965; }
   for(let x=1;x<=N_MAIN;x++) if(gap[x]<0) gap[x]=n; for(let x=1;x<=N_STRONG;x++) if(sgap[x]<0) sgap[x]=n;
-  const last=h[0].nums, mk=A(), pa=A(), mom=A(), due=A(), inLast=A(), skip=A(), nb=A(), knn=A(), bay=A(), lag=A(), tri=A();
+  const last=h[0].nums, mk=A(), pa=A(), mom=A(), due=A(), inLast=A(), skip=A(), nb=A(), knn=A(), bay=A(), lag=A(), tri=A(), knn10=A(), knn60=A();
   /* cyclicity: how often a number came back exactly p draws later (p=1..10), applied to where it stands now */
   const LAGS=10, lagHit=[...Array(N_MAIN+1)].map(()=>new Float64Array(LAGS+1)), has=t=>h[t].nums;
   for(let t=LAGS;t<n;t++) for(const x of has(t)) for(let q=1;q<=LAGS;q++) if(has(t-q).includes(x)) lagHit[x][q]++;
@@ -1272,15 +1274,34 @@ function labSignals(h){
   const tc=new Map(); for(let t=0;t<Math.min(200,n);t++){ const a=has(t); for(let i=0;i<6;i++) for(let j=i+1;j<6;j++) for(let k=j+1;k<6;k++){ const key=a[i]*1369+a[j]*37+a[k]; tc.set(key,(tc.get(key)||0)+1); } }
   [...tc].sort((p,q)=>q[1]-p[1]).slice(0,40).forEach(([key,c])=>{ tri[Math.floor(key/1369)]+=c; tri[Math.floor(key/37)%37]+=c; tri[key%37]+=c; });
   for(let x=1;x<=N_MAIN;x++){ lag[x]+=f100[x]/1e4; tri[x]+=f100[x]/1e4; }
+  /* windows, decays, windowed pairs, second-order and recent Markov, KNN variants */
+  const WINS=[10,20,40,75,150,300,500], fw={}; WINS.forEach(W=>fw[W]=A());
+  const DECAYS=[0.9,0.95,0.98,0.99,0.995], ed={}; DECAYS.forEach(d=>ed[d]=A());
+  const co100=[...Array(N_MAIN+1)].map(()=>new Float64Array(N_MAIN+1)), co300=[...Array(N_MAIN+1)].map(()=>new Float64Array(N_MAIN+1));
+  const tr2=[...Array(N_MAIN+1)].map(()=>new Float64Array(N_MAIN+1)), seen2=A(), trR=[...Array(N_MAIN+1)].map(()=>new Float64Array(N_MAIN+1)), seenR=A();
+  const em=DECAYS.map(()=>1);
+  for(let t=0;t<n;t++){ const a=has(t);
+    for(const x of a){ WINS.forEach(W=>{ if(t<W) fw[W][x]++; }); DECAYS.forEach((d,i)=>ed[d][x]+=em[i]); }
+    DECAYS.forEach((d,i)=>em[i]*=d);
+    if(t<300) for(let i=0;i<6;i++) for(let j=i+1;j<6;j++){ co300[a[i]][a[j]]++; co300[a[j]][a[i]]++; if(t<100){ co100[a[i]][a[j]]++; co100[a[j]][a[i]]++; } }
+    if(t+2<n) for(const m of has(t+2)){ seen2[m]++; for(const x of a) tr2[m][x]++; }
+    if(t+1<n && t<150) for(const m of has(t+1)){ seenR[m]++; for(const x of a) trR[m][x]++; } }
+  const prev2=n>1?has(1):[], mk2=A(), mkR=A(), pa100=A(), pa300=A(), gapMid=A(), fresh=A();
+  for(let x=1;x<=N_MAIN;x++){ for(const m of prev2) if(seen2[m]) mk2[x]+=tr2[m][x]/seen2[m];
+    for(const m of last){ if(seenR[m]) mkR[x]+=trR[m][x]/seenR[m]; if(m!==x){ pa100[x]+=co100[m][x]; pa300[x]+=co300[m][x]; } }
+    const tb=f100[x]/1e4; mk2[x]+=tb; mkR[x]+=tb; pa100[x]+=tb; pa300[x]+=tb;
+    gapMid[x]=-Math.abs(gap[x]-N_MAIN/PICK)+tb; fresh[x]=(gap[x]>=1?-gap[x]:-99)+tb; }
   /* k-nearest neighbours: the 30 past draws most like the last one, and what came right after them */
   const sims=[]; for(let t=1;t<n;t++){ let o=0; for(const x of h[t].nums) if(last.includes(x)) o++; if(o>=2) sims.push([o,t]); }
   sims.sort((p,q)=>q[0]-p[0]||p[1]-q[1]); sims.slice(0,30).forEach(([o,t])=>h[t-1].nums.forEach(x=>knn[x]+=o));
+  sims.slice(0,10).forEach(([o,t])=>h[t-1].nums.forEach(x=>knn10[x]+=o)); sims.slice(0,60).forEach(([o,t])=>h[t-1].nums.forEach(x=>knn60[x]+=o));
+  for(let x=1;x<=N_MAIN;x++){ knn10[x]+=f100[x]/1e4; knn60[x]+=f100[x]/1e4; }
   for(let x=1;x<=N_MAIN;x++){ let s=0,q=0; for(const m of last){ if(seenAfter[m]) s+=tr[m][x]/seenAfter[m]; if(m!==x) q+=co[m][x]/Math.max(1,f[m]); } mk[x]=s; pa[x]=q;
     mom[x]=f30[x]/30-f[x]/n; due[x]=gap[x]/Math.max(1,n/Math.max(1,f[x])); inLast[x]=last.includes(x)?1:0;
     let mode=0,mc=-1; gapHist[x].forEach((c,g)=>{ if(c>mc||(c===mc&&g<mode)){ mc=c; mode=g; } }); skip[x]=-Math.abs(gap[x]-mode);
     nb[x]=last.reduce((s,m)=>s+(Math.abs(m-x)===1?1:Math.abs(m-x)===2?.5:0),0)+f100[x]/1000;
     bay[x]=(f100[x]+300*f[x]/n)/(100+300); knn[x]+=f100[x]/1000; }
-  return {f,f30,f50,f100,f200,ew,gap,due,mk,pa,mom,inLast,skip,nb,knn,bay,lag,tri,pos,dig,sf,s100,sgap,n,h};
+  return {f,f30,f50,f100,f200,ew,gap,due,mk,pa,mom,inLast,skip,nb,knn,bay,lag,tri,pos,dig,sf,s100,sgap,n,h,fw,ed,mk2,mkR,pa100,pa300,knn10,knn60,gapMid,fresh};
 }
 const labZ=a=>{ let m=0,v=0; for(let x=1;x<=N_MAIN;x++) m+=a[x]; m/=N_MAIN; for(let x=1;x<=N_MAIN;x++) v+=(a[x]-m)**2; const sd=Math.sqrt(v/N_MAIN)||1; const o=new Float64Array(N_MAIN+1); for(let x=1;x<=N_MAIN;x++) o[x]=(a[x]-m)/sd; return o; };
 const LAB_FEATS=['f100','f30','f','gap','due','mk','pa','mom','inLast','ew','skip','nb','knn'];
@@ -1306,6 +1327,18 @@ function pickGenetic(S){
       let t=[...c]; if(r()<.4){ let y; do{ y=1+rnd(N_MAIN); }while(t.includes(y)); t[rnd(PICK)]=y; } kids.push({t,s:fit(t)}); }
     pop=keep.concat(kids); }
   pop.sort((a,b)=>b.s-a.s); return pop[0].t; }
+const PRIMES=[2,3,5,7,11,13,17,19,23,29,31,37], FIBS=[1,2,3,5,8,13,21,34];
+const pickFrom=(S,pool,k=PICK)=>{ const sc=new Float64Array(N_MAIN+1).fill(-1e9); pool.forEach(x=>sc[x]=S.f100[x]); return topK(sc,k); };
+const pickSplit=(S,a,b)=>[...pickFrom(S,a,3),...pickFrom(S,b,3)];
+const ODDS=NUMS.filter(x=>x%2), EVENS=NUMS.filter(x=>!(x%2)), LOWS=NUMS.filter(x=>x<=18), HIGHS=NUMS.filter(x=>x>18);
+function pickSumTarget(S){ const sums=S.h.slice(0,300).map(d=>d.nums.reduce((p,q)=>p+q,0)), target=sums.reduce((p,q)=>p+q,0)/sums.length, pool=topK(S.f100,12); let best=null,bd=1e9,bs=-1;
+  const rec=(st,a)=>{ if(a.length===PICK){ const d=Math.abs(a.reduce((p,q)=>p+q,0)-target), sc=a.reduce((p,x)=>p+S.f100[x],0); if(d<bd-0.5||(Math.abs(d-bd)<=0.5&&sc>bs)){ bd=d; bs=sc; best=a.slice(); } return; }
+    for(let i=st;i<pool.length;i++){ a.push(pool[i]); rec(i+1,a); a.pop(); } }; rec(0,[]); return best; }
+function pickThompson(S){ const r=seeded((S.h[0].id||S.n)*104729), sc=new Float64Array(N_MAIN+1);
+  for(let x=1;x<=N_MAIN;x++){ const a=S.f100[x]+1, b=100*PICK-S.f100[x]+1, m=a/(a+b), sd=Math.sqrt(a*b/((a+b)**2*(a+b+1))); const u=Math.max(1e-9,r()), v=r(); sc[x]=m+sd*Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v); }
+  return topK(sc,PICK); }
+const zs=a=>labZ(a);
+const blend=(...parts)=>S=>{ const o=new Float64Array(N_MAIN+1); parts.forEach(([k,w])=>{ const z=zs(typeof k==='function'?k(S):S[k]); for(let x=1;x<=N_MAIN;x++) o[x]+=w*z[x]; }); return o; };
 const BASE=[
   {id:'hotAll', name:'חמים · כל ההיסטוריה', how:'המספרים שיצאו הכי הרבה מאז 2011', score:S=>S.f, strong:S=>S.sf},
   {id:'hot200', name:'חמים · 200 אחרונות', how:'הכי שכיחים בשנתיים האחרונות', score:S=>S.f200, strong:S=>S.s100},
@@ -1332,6 +1365,48 @@ const BASE=[
   {id:'lag', name:'מחזוריות (מתאם השהיה)', how:'האם מספר נוטה לחזור אחרי מספר קבוע של הגרלות (1 עד 10)', score:S=>S.lag, strong:S=>S.s100},
   {id:'triples', name:'שלישיות חמות', how:'מספרים מתוך 40 השלישיות שיצאו הכי הרבה ב־200 האחרונות', score:S=>S.tri, strong:S=>S.s100},
   {id:'genetic', name:'אלגוריתם גנטי', how:'אבולוציה של 640 טפסים: זה שהיה תופס הכי הרבה ב־60 ההגרלות האחרונות', pick:pickGenetic, strong:S=>S.s100},
+  {id:'hot10', fam:'חלון', name:'חמים · 10 אחרונות', how:'הכי שכיחים בחודש האחרון', score:S=>S.fw[10], strong:S=>S.s100},
+  {id:'hot20', fam:'חלון', name:'חמים · 20 אחרונות', how:'הכי שכיחים ב־20 ההגרלות האחרונות', score:S=>S.fw[20], strong:S=>S.s100},
+  {id:'hot40', fam:'חלון', name:'חמים · 40 אחרונות', how:'הכי שכיחים ב־40 ההגרלות האחרונות', score:S=>S.fw[40], strong:S=>S.s100},
+  {id:'hot75', fam:'חלון', name:'חמים · 75 אחרונות', how:'הכי שכיחים ב־75 ההגרלות האחרונות', score:S=>S.fw[75], strong:S=>S.s100},
+  {id:'hot150', fam:'חלון', name:'חמים · 150 אחרונות', how:'הכי שכיחים ב־150 ההגרלות האחרונות', score:S=>S.fw[150], strong:S=>S.s100},
+  {id:'hot300', fam:'חלון', name:'חמים · 300 אחרונות', how:'הכי שכיחים בשלוש השנים האחרונות', score:S=>S.fw[300], strong:S=>S.s100},
+  {id:'hot500', fam:'חלון', name:'חמים · 500 אחרונות', how:'הכי שכיחים בחמש השנים האחרונות', score:S=>S.fw[500], strong:S=>S.sf},
+  {id:'cold30', fam:'חלון', name:'קרים · 30 אחרונות', how:'הכי פחות שכיחים בחודשים האחרונים', score:S=>S.f30.map(v=>-v), strong:S=>S.s100.map(v=>-v)},
+  {id:'cold50', fam:'חלון', name:'קרים · 50 אחרונות', how:'הכי פחות שכיחים בחצי השנה האחרונה', score:S=>S.f50.map(v=>-v), strong:S=>S.s100.map(v=>-v)},
+  {id:'cold200', fam:'חלון', name:'קרים · 200 אחרונות', how:'הכי פחות שכיחים בשנתיים האחרונות', score:S=>S.f200.map(v=>-v), strong:S=>S.s100.map(v=>-v)},
+  {id:'cold500', fam:'חלון', name:'קרים · 500 אחרונות', how:'הכי פחות שכיחים בחמש השנים האחרונות', score:S=>S.fw[500].map(v=>-v), strong:S=>S.sf.map(v=>-v)},
+  {id:'ew90', fam:'דעיכה', name:'דעיכה מהירה (0.90)', how:'כמעט רק ההגרלות האחרונות שוקלות', score:S=>S.ed[0.9], strong:S=>S.s100},
+  {id:'ew95', fam:'דעיכה', name:'דעיכה (0.95)', how:'משקל יורד בחצי כל 14 הגרלות', score:S=>S.ed[0.95], strong:S=>S.s100},
+  {id:'ew98', fam:'דעיכה', name:'דעיכה (0.98)', how:'משקל יורד בחצי כל 34 הגרלות', score:S=>S.ed[0.98], strong:S=>S.s100},
+  {id:'ew99', fam:'דעיכה', name:'דעיכה איטית (0.99)', how:'משקל יורד בחצי כל 69 הגרלות', score:S=>S.ed[0.99], strong:S=>S.s100},
+  {id:'ew995', fam:'דעיכה', name:'דעיכה איטית מאוד (0.995)', how:'משקל יורד בחצי כל 138 הגרלות', score:S=>S.ed[0.995], strong:S=>S.sf},
+  {id:'gapMid', fam:'פערים', name:'פער טיפוסי', how:'מספרים שהפער שלהם קרוב לפער הממוצע (כ־6 הגרלות)', score:S=>S.gapMid, strong:S=>S.s100},
+  {id:'fresh', fam:'פערים', name:'טריים', how:'מספרים שיצאו ממש לאחרונה, בלי ההגרלה האחרונה', score:S=>S.fresh, strong:S=>S.s100},
+  {id:'markov2', fam:'רצפים', name:'מרקוב מסדר 2', how:'מה נוטה לצאת שתי הגרלות אחרי מספרי ההגרלה הקודמת לאחרונה', score:S=>S.mk2, strong:S=>S.s100},
+  {id:'markovR', fam:'רצפים', name:'מרקוב עדכני', how:'מעברים בין הגרלות, רק ב־150 ההגרלות האחרונות', score:S=>S.mkR, strong:S=>S.s100},
+  {id:'pairs100', fam:'זוגות', name:'זיקת זוגות · 100', how:'זוגות עם מספרי ההגרלה האחרונה, ב־100 ההגרלות האחרונות', score:S=>S.pa100, strong:S=>S.s100},
+  {id:'pairs300', fam:'זוגות', name:'זיקת זוגות · 300', how:'זוגות עם מספרי ההגרלה האחרונה, ב־300 ההגרלות האחרונות', score:S=>S.pa300, strong:S=>S.s100},
+  {id:'knn10', fam:'זוגות', name:'KNN · 10 שכנים', how:'10 ההגרלות הכי דומות לאחרונה, ומה יצא אחריהן', score:S=>S.knn10, strong:S=>S.s100},
+  {id:'knn60', fam:'זוגות', name:'KNN · 60 שכנים', how:'60 ההגרלות הכי דומות לאחרונה, ומה יצא אחריהן', score:S=>S.knn60, strong:S=>S.s100},
+  {id:'mom10', fam:'מגמה', name:'מומנטום קצר', how:'שכיחות ב־10 האחרונות לעומת ה־100', score:S=>S.fw[10].map((v,x)=>v/10-S.f100[x]/100), strong:S=>S.s100},
+  {id:'mom50', fam:'מגמה', name:'מומנטום ארוך', how:'שכיחות ב־50 האחרונות לעומת ה־300', score:S=>S.f50.map((v,x)=>v/50-S.fw[300][x]/300), strong:S=>S.s100},
+  {id:'bHotDue', fam:'שילוב', name:'שילוב: חמים + מגיע לו', how:'ממוצע של שכיחות 100 ומדד "מגיע לו"', score:blend(['f100',1],['due',1]), strong:S=>S.s100},
+  {id:'bHotGap', fam:'שילוב', name:'שילוב: חמים קצר + פער', how:'שכיחות 30 ועוד הפער הנוכחי', score:blend(['f30',1],['gap',1]), strong:S=>S.s100},
+  {id:'bMkPair', fam:'שילוב', name:'שילוב: מרקוב + זוגות', how:'ממוצע של שרשרת מרקוב וזיקת זוגות', score:blend(['mk',1],['pa',1]), strong:S=>S.s100},
+  {id:'bKnnMk', fam:'שילוב', name:'שילוב: KNN + מרקוב', how:'ממוצע של שכנים קרובים ושרשרת מרקוב', score:blend(['knn',1],['mk',1]), strong:S=>S.s100},
+  {id:'bContra', fam:'שילוב', name:'שילוב: חמים לאורך זמן, קרים לאחרונה', how:'שכיחות כל ההיסטוריה פחות שכיחות 30', score:blend(['f',1],['f30',-1]), strong:S=>S.sf},
+  {id:'bEwRep', fam:'שילוב', name:'שילוב: דעיכה + חזרה', how:'דעיכה אקספוננציאלית ועוד חזרה מההגרלה האחרונה', score:blend(['ew',1],['inLast',1]), strong:S=>S.s100},
+  {id:'bAll', fam:'שילוב', name:'שילוב: כל האותות בשווה', how:'סכום של 13 האותות, בלי למידה', score:S=>{ const o=new Float64Array(N_MAIN+1); LAB_FEATS.forEach(k=>{ const z=zs(S[k]); for(let x=1;x<=N_MAIN;x++) o[x]+=z[x]; }); return o; }, strong:S=>S.s100},
+  {id:'oddEven', fam:'מבנה', name:'איזון זוגי/אי־זוגי', how:'3 האי־זוגיים ו־3 הזוגיים החמים ביותר', pick:S=>pickSplit(S,ODDS,EVENS), strong:S=>S.s100},
+  {id:'lowHigh', fam:'מבנה', name:'איזון נמוכים/גבוהים', how:'3 החמים מ־1–18 ו־3 החמים מ־19–37', pick:S=>pickSplit(S,LOWS,HIGHS), strong:S=>S.s100},
+  {id:'sumTarget', fam:'מבנה', name:'סכום ממוצע', how:'מהחמים, הצירוף שהסכום שלו הכי קרוב לסכום הממוצע', pick:pickSumTarget, strong:S=>S.s100},
+  {id:'antiPop', fam:'מבנה', name:'פחות פופולרי', how:'חמים, עם העדפה למספרים גבוהים שפחות אנשים בוחרים', score:S=>S.f100.map((v,x)=>v/100+(x>31?1:0)+(x>19?.5:0)), strong:S=>S.s100},
+  {id:'thompson', fam:'הסתברות', name:'דגימת תומפסון', how:'דגימה אקראית מהתפלגות בייסיאנית של כל מספר', pick:pickThompson, strong:S=>S.s100},
+  {id:'primes', fam:'עממי', name:'מספרים ראשוניים', how:'שיטה עממית: החמים מבין הראשוניים (2, 3, 5, 7, 11...)', pick:S=>pickFrom(S,PRIMES), strong:S=>S.s100},
+  {id:'fibonacci', fam:'עממי', name:'פיבונאצ׳י', how:'שיטה עממית: החמים מבין 1, 2, 3, 5, 8, 13, 21, 34', pick:S=>pickFrom(S,FIBS), strong:S=>S.s100},
+  {id:'mirror', fam:'עממי', name:'מראה', how:'שיטה עממית: 38 פחות כל מספר מההגרלה האחרונה', pick:S=>S.h[0].nums.map(x=>N_MAIN+1-x), strong:S=>S.s100},
+  {id:'shift', fam:'עממי', name:'הזזה באחד', how:'שיטה עממית: כל מספר מההגרלה האחרונה ועוד 1', pick:S=>S.h[0].nums.map(x=>x%N_MAIN+1), strong:S=>S.s100},
   {id:'ml', name:'למידת מכונה (רגרסיה לוגיסטית)', how:'מודל שלמד מ־400 הגרלות קודמות איך לשקלל 13 אותות', strong:S=>S.s100},
   {id:'mlp', name:'רשת עצבית', how:'רשת קטנה (13 קלטים, 8 נוירונים) שלמדה מ־400 הגרלות קודמות', strong:S=>S.s100},
   {id:'boost', name:'עצי החלטה מחוזקים (Boosting)', how:'30 עצי החלטה קטנים, כל אחד מתקן את הטעויות של הקודמים', strong:S=>S.s100},
@@ -1401,7 +1476,10 @@ function committee(pr,recent,S){ const top=BASE.map(a=>[a.id,recent[a.id].reduce
   for(let x=1;x<=N_MAIN;x++) v[x]+=S.f100[x]*1e-6; return {nums:sortNums(topK(v,6)), strong:topK(sv,1,N_STRONG)[0], from:top}; }
 let LAB=null, labRunning=false;
 async function runLab(){
-  if(labRunning || (LAB && LAB.ver===dataVer())) return renderLab(); labRunning=true;
+  if(labRunning || (LAB && LAB.ver===dataVer())) return renderLab();
+  /* results depend only on the data, so a finished run is kept in this browser until the next draw */
+  try{ const c=JSON.parse(ls.get('lotto-lab-v3')||'null'); if(c && c.ver===dataVer()){ LAB=c; return renderLab(); } }catch(e){}
+  labRunning=true; $('#labMeta').textContent='מחשב את כל השיטות על 300 הגרלות. זה לוקח בערך 15 שניות, ורק בפעם הראשונה אחרי כל הגרלה.';
   const T=Math.min(200, cur.length-900), WARM=100, TRAIN=400, prog=$('#labProg i'), E=PICK*PICK/N_MAIN;
   /* the model trains only on draws older than the warm-up and test draws */
   const rows=[];
@@ -1424,7 +1502,9 @@ async function runLab(){
   const S=labSignals(cur), next=predictBase(S,M,cur[0].id+1); next.hedge=hedgeVote(next,W,S);
   const lead=BASE.map(a=>[a.id,recent[a.id].slice(-50).reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1])[0][0]; next.leader={...next[lead], from:lead};
   next.experts=committee(next,recent,S);
-  LAB={ver:dataVer(), T, res, last, next, w, W:{...W}, lead}; labRunning=false; prog.style.width='100%';
+  delete next.hedge.votes;
+  LAB={ver:dataVer(), T, res, last, next, w:[...w], W:{...W}, lead}; labRunning=false; prog.style.width='100%';
+  try{ ls.set('lotto-lab-v3',JSON.stringify(LAB)); }catch(e){}
   renderLab();
 }
 /* five tickets for the next draw from the meta-algorithm: its own pick, then the best-weighted methods, kept apart from each other */
@@ -1465,11 +1545,12 @@ function renderLab(){
   $('#labCopy').onclick=()=>{ const txt=mt.map((t,i)=>`${i+1}) ${t.nums.join(' ')} | חזק ${t.strong}`).join('\n'); (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('הועתק'),()=>toast('ההעתקה נכשלה')); };
   $('#labMeta').textContent=`נבדקו ${T} ההגרלות האחרונות, עד ${dateHe(cur[0].date)}. בחירה אקראית תופסת בממוצע ${fmt(E,2)} מספרים לטופס.`;
   $('#labTbl').innerHTML=`<thead><tr><th>אלגוריטם</th><th>הניחוש להגרלה הקרובה</th><th>ממוצע</th><th>3+</th><th>4+</th><th>5+</th><th class="hide-m">חזק</th><th class="hide-m">מול מזל</th></tr></thead><tbody>`+
-    rows.map((x,i)=>`<tr class="${x.a.meta?'meta':''}"><td class="nm"><b>${x.a.name}</b><span>${x.a.how}${x.a.id==='leader'?` · עכשיו: ${ALGOS.find(a=>a.id===LAB.lead).name}`:''}</span></td>
+    rows.map((x,i)=>`<tr class="${x.a.meta?'meta':''}${i>=15&&!x.a.meta&&x.a.id!=='rnd'?' more':''}"><td class="nm"><b>${x.a.name}</b><span>${x.a.how}${x.a.id==='leader'?` · עכשיו: ${ALGOS.find(a=>a.id===LAB.lead).name}`:''}</span></td>
       <td><div class="balls start">${next[x.a.id].nums.map(n=>ball(n,'xs')).join('')}<span class="plus">+</span>${sball(next[x.a.id].strong,'xs')}</div></td>
       <td class="num"><b>${fmt(x.m,2)}</b></td><td class="num">${x.r.c3}</td><td class="num">${x.r.c4}</td><td class="num">${x.r.c5}</td>
       <td class="num hide-m">${fmt(100*x.r.s/T,0)}%</td><td class="num hide-m">${Math.abs(x.z)<2.9?'<span class="pill">מזל רגיל</span>':`<span class="pill ${x.z>0?'good':'bad'}">${x.z>0?'+':''}${fmt(x.z,1)}σ</span>`}</td></tr>`).join('')+'</tbody>';
-  $('#labNote').innerHTML=`צפוי במזל לכל שורה: ממוצע ${fmt(E,2)}, כ־${fmt(T*p3plus(),1)} פעמים 3+, כ־${fmt(T*p4,1)} פעמים 4+, חזק ${fmt(100/N_STRONG,0)}%. "מזל רגיל" = בטווח של ±2.9σ: כשבודקים ${ALGOS.length} שיטות יחד, סטייה של 2σ צפויה אצל אחת מהן במקרה (תיקון בונפרוני), ולכן המקום הראשון בטבלה מתחלף מתקופה לתקופה. מודל למידת המכונה נתן לכל ${LAB_FEATS.length} האותות משקל ${LAB.w.slice(0,-1).every(v=>Math.abs(v)<0.02)?'קרוב לאפס, כלומר הוא למד בעצמו שהם לא מנבאים':'קטן'}.`;
+  $('#labTbl').classList.toggle('all',!!LAB.showAll);
+  $('#labNote').innerHTML=`<button class="btn" id="labMore" style="margin-bottom:8px">${LAB.showAll?'הצג פחות':`הצג את כל ${ALGOS.length} השיטות`}</button><br>`+`צפוי במזל לכל שורה: ממוצע ${fmt(E,2)}, כ־${fmt(T*p3plus(),1)} פעמים 3+, כ־${fmt(T*p4,1)} פעמים 4+, חזק ${fmt(100/N_STRONG,0)}%. "מזל רגיל" = בטווח של ±2.9σ: כשבודקים ${ALGOS.length} שיטות יחד, סטייה של 2σ צפויה אצל אחת מהן במקרה (תיקון בונפרוני), ולכן המקום הראשון בטבלה מתחלף מתקופה לתקופה. מודל למידת המכונה נתן לכל ${LAB_FEATS.length} האותות משקל ${LAB.w.slice(0,-1).every(v=>Math.abs(v)<0.02)?'קרוב לאפס, כלומר הוא למד בעצמו שהם לא מנבאים':'קטן'}.`;
   const d=cur[0];
   $('#labLast').innerHTML=`<h3>מה כל אלגוריטם ניחש להגרלה האחרונה</h3><p class="muted small" style="margin:-4px 0 10px">הגרלה ${d.id}, ${dateHe(d.date)}: <span class="balls start" style="display:inline-flex">${ballsHtml(d,'xs')}</span></p>
     <div class="scroll" style="max-height:none"><table class="tbl"><tbody>${ALGOS.map(a=>{ const x=last[a.id]; return `<tr><td>${a.name}</td><td><div class="balls start">${x.nums.map(n=>ball(n,'xs'+(d.nums.includes(n)?' hit':''))).join('')}<span class="plus">+</span>${sball(x.strong,'xs'+(x.sHit?' hit':''))}</div></td><td class="num"><b>${x.h}</b>${x.sHit?' + חזק':''}</td></tr>`; }).join('')}</tbody></table></div>`;
@@ -1481,6 +1562,7 @@ function renderLab(){
     ${[8,9,10,11,12].map(k=>`<tr><td>שיטתי ${k}</td><td class="num">${shekel(C(k,6)*P)}</td><td class="num">1 ל־${fmt(Math.round(1/pk(k,4)))}</td><td class="num">1 ל־${fmt(Math.round(1/pk(k,5)))}</td><td class="num">1 ל־${fmt(Math.round(1/pk(k,6)))}</td></tr>`).join('')}
     </tbody></table></div>
     <p class="small" style="margin:10px 0 0">גם כאן כל שקל קונה את אותו סיכוי בממוצע. כיסוי לא משנה את התוחלת, רק מרכז את הכסף בהגרלה אחת. אפשר לבנות טופס שיטתי בעמוד <a href="#" data-goto="cart">טפסים ועלות</a>.</p>`;
+  $('#labMore').onclick=()=>{ LAB.showAll=!LAB.showAll; renderLab(); };
   goalCalc();
   if(typeof mountSay==='function') mountSay();
   countUps($('#p-lab'));
