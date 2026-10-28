@@ -591,7 +591,7 @@ html.hc .sc{border-color:#000;color:#000}
 
   <!-- ALGORITHM LAB -->
   <section class="page" id="p-lab">
-    <div class="sec-head"><div><h2>מעבדת אלגוריטמים</h2><p>23 שיטות חיזוי, מהפשוטות ועד למידת מכונה, ושני מטא־אלגוריתמים שעובדים על כולן. כל אחת מציגה את הניחוש שלה להגרלה הקרובה, ואת התוצאות האמיתיות שלה ב־200 ההגרלות האחרונות, כשבכל הגרלה היא ראתה רק את מה שהיה ידוע לפניה.</p></div></div>
+    <div class="sec-head"><div><h2>מעבדת אלגוריטמים</h2><p>28 שיטות חיזוי, מהפשוטות ועד רשת עצבית ואלגוריתם גנטי, ושלושה מטא־אלגוריתמים שעובדים על כולן. כל אחת מציגה את הניחוש שלה להגרלה הקרובה, ואת התוצאות האמיתיות שלה ב־200 ההגרלות האחרונות, כשבכל הגרלה היא ראתה רק את מה שהיה ידוע לפניה.</p></div></div>
     <div class="card meta-card" id="labPick"></div>
     <div class="card" id="labGoal" style="margin-top:16px"></div>
     <div class="card" style="margin-top:16px">
@@ -1263,7 +1263,15 @@ function labSignals(h){
     if(t+1<n){ const prev=h[t+1].nums; for(const m of prev){ seenAfter[m]++; for(const x of a) tr[m][x]++; } }
     sf[h[t].strong]++; if(t<100) s100[h[t].strong]++; if(sgap[h[t].strong]<0) sgap[h[t].strong]=t; w*=0.965; }
   for(let x=1;x<=N_MAIN;x++) if(gap[x]<0) gap[x]=n; for(let x=1;x<=N_STRONG;x++) if(sgap[x]<0) sgap[x]=n;
-  const last=h[0].nums, mk=A(), pa=A(), mom=A(), due=A(), inLast=A(), skip=A(), nb=A(), knn=A(), bay=A();
+  const last=h[0].nums, mk=A(), pa=A(), mom=A(), due=A(), inLast=A(), skip=A(), nb=A(), knn=A(), bay=A(), lag=A(), tri=A();
+  /* cyclicity: how often a number came back exactly p draws later (p=1..10), applied to where it stands now */
+  const LAGS=10, lagHit=[...Array(N_MAIN+1)].map(()=>new Float64Array(LAGS+1)), has=t=>h[t].nums;
+  for(let t=LAGS;t<n;t++) for(const x of has(t)) for(let q=1;q<=LAGS;q++) if(has(t-q).includes(x)) lagHit[x][q]++;
+  for(let x=1;x<=N_MAIN;x++) for(let q=1;q<=LAGS;q++) if(q-1<n && has(q-1).includes(x)) lag[x]+=lagHit[x][q]/Math.max(1,f[x]);
+  /* hot triples in the last 200 draws */
+  const tc=new Map(); for(let t=0;t<Math.min(200,n);t++){ const a=has(t); for(let i=0;i<6;i++) for(let j=i+1;j<6;j++) for(let k=j+1;k<6;k++){ const key=a[i]*1369+a[j]*37+a[k]; tc.set(key,(tc.get(key)||0)+1); } }
+  [...tc].sort((p,q)=>q[1]-p[1]).slice(0,40).forEach(([key,c])=>{ tri[Math.floor(key/1369)]+=c; tri[Math.floor(key/37)%37]+=c; tri[key%37]+=c; });
+  for(let x=1;x<=N_MAIN;x++){ lag[x]+=f100[x]/1e4; tri[x]+=f100[x]/1e4; }
   /* k-nearest neighbours: the 30 past draws most like the last one, and what came right after them */
   const sims=[]; for(let t=1;t<n;t++){ let o=0; for(const x of h[t].nums) if(last.includes(x)) o++; if(o>=2) sims.push([o,t]); }
   sims.sort((p,q)=>q[0]-p[0]||p[1]-q[1]); sims.slice(0,30).forEach(([o,t])=>h[t-1].nums.forEach(x=>knn[x]+=o));
@@ -1272,7 +1280,7 @@ function labSignals(h){
     let mode=0,mc=-1; gapHist[x].forEach((c,g)=>{ if(c>mc||(c===mc&&g<mode)){ mc=c; mode=g; } }); skip[x]=-Math.abs(gap[x]-mode);
     nb[x]=last.reduce((s,m)=>s+(Math.abs(m-x)===1?1:Math.abs(m-x)===2?.5:0),0)+f100[x]/1000;
     bay[x]=(f100[x]+300*f[x]/n)/(100+300); knn[x]+=f100[x]/1000; }
-  return {f,f30,f50,f100,f200,ew,gap,due,mk,pa,mom,inLast,skip,nb,knn,bay,pos,dig,sf,s100,sgap,n};
+  return {f,f30,f50,f100,f200,ew,gap,due,mk,pa,mom,inLast,skip,nb,knn,bay,lag,tri,pos,dig,sf,s100,sgap,n,h};
 }
 const labZ=a=>{ let m=0,v=0; for(let x=1;x<=N_MAIN;x++) m+=a[x]; m/=N_MAIN; for(let x=1;x<=N_MAIN;x++) v+=(a[x]-m)**2; const sd=Math.sqrt(v/N_MAIN)||1; const o=new Float64Array(N_MAIN+1); for(let x=1;x<=N_MAIN;x++) o[x]=(a[x]-m)/sd; return o; };
 const LAB_FEATS=['f100','f30','f','gap','due','mk','pa','mom','inLast','ew','skip','nb','knn'];
@@ -1287,6 +1295,17 @@ function pickStructured(S){ const pool=topK(S.f100,12); let best=null,bs=-1e9;
       if(sum>=90&&sum<=140&&odd>=2&&odd<=4&&mr<=2){ const sc=a.reduce((p,x)=>p+S.f100[x],0); if(sc>bs){ bs=sc; best=a.slice(); } } return; }
     for(let i=st;i<pool.length;i++){ a.push(pool[i]); rec(i+1,a); a.pop(); } };
   rec(0,[]); return best||pool.slice(0,PICK); }
+function pickGenetic(S){
+  const h=S.h, E=Math.min(60,S.n), r=seeded((h[0].id||S.n)*7919), rnd=k=>Math.floor(r()*k);
+  const masks=h.slice(0,E).map(d=>{ const m=new Uint8Array(N_MAIN+1); d.nums.forEach(x=>m[x]=1); return m; });
+  const fit=t=>{ let s=0; for(const m of masks){ let c=0; for(const x of t) c+=m[x]; s+=c*c; } return s; };
+  const rand=()=>{ const c=new Set(); while(c.size<PICK) c.add(1+rnd(N_MAIN)); return [...c]; };
+  let pop=[...Array(40)].map(rand).map(t=>({t,s:fit(t)}));
+  for(let g=0;g<20;g++){ pop.sort((a,b)=>b.s-a.s); const keep=pop.slice(0,10), kids=[];
+    while(kids.length<30){ const a=keep[rnd(10)].t, b=keep[rnd(10)].t, c=new Set(); while(c.size<PICK){ const src=r()<.5?a:b; c.add(src[rnd(PICK)]); }
+      let t=[...c]; if(r()<.4){ let y; do{ y=1+rnd(N_MAIN); }while(t.includes(y)); t[rnd(PICK)]=y; } kids.push({t,s:fit(t)}); }
+    pop=keep.concat(kids); }
+  pop.sort((a,b)=>b.s-a.s); return pop[0].t; }
 const BASE=[
   {id:'hotAll', name:'חמים · כל ההיסטוריה', how:'המספרים שיצאו הכי הרבה מאז 2011', score:S=>S.f, strong:S=>S.sf},
   {id:'hot200', name:'חמים · 200 אחרונות', how:'הכי שכיחים בשנתיים האחרונות', score:S=>S.f200, strong:S=>S.s100},
@@ -1310,10 +1329,16 @@ const BASE=[
   {id:'position', name:'לפי מיקום', how:'המספר השכיח ביותר בכל מקום בטבלה (הקטן, השני, ...)', pick:pickPositional, strong:S=>S.s100},
   {id:'decades', name:'איזון עשורים', how:'החמים ביותר מכל עשור, בפיזור הטיפוסי', pick:pickDecades, strong:S=>S.s100},
   {id:'struct', name:'חמים עם סינון מבנה', how:'החמים ביותר שעומדים בסכום, זוגיות ורצפים טיפוסיים', pick:pickStructured, strong:S=>S.s100},
+  {id:'lag', name:'מחזוריות (מתאם השהיה)', how:'האם מספר נוטה לחזור אחרי מספר קבוע של הגרלות (1 עד 10)', score:S=>S.lag, strong:S=>S.s100},
+  {id:'triples', name:'שלישיות חמות', how:'מספרים מתוך 40 השלישיות שיצאו הכי הרבה ב־200 האחרונות', score:S=>S.tri, strong:S=>S.s100},
+  {id:'genetic', name:'אלגוריתם גנטי', how:'אבולוציה של 640 טפסים: זה שהיה תופס הכי הרבה ב־60 ההגרלות האחרונות', pick:pickGenetic, strong:S=>S.s100},
   {id:'ml', name:'למידת מכונה (רגרסיה לוגיסטית)', how:'מודל שלמד מ־400 הגרלות קודמות איך לשקלל 13 אותות', strong:S=>S.s100},
+  {id:'mlp', name:'רשת עצבית', how:'רשת קטנה (13 קלטים, 8 נוירונים) שלמדה מ־400 הגרלות קודמות', strong:S=>S.s100},
+  {id:'boost', name:'עצי החלטה מחוזקים (Boosting)', how:'30 עצי החלטה קטנים, כל אחד מתקן את הטעויות של הקודמים', strong:S=>S.s100},
 ];
 const META=[
-  {id:'hedge', name:'מטא־אלגוריתם: שקלול לפי הצלחה', how:'משקלל את כל 23 השיטות. אחרי כל הגרלה, שיטה שתפסה יותר מקבלת משקל גדול יותר', meta:true},
+  {id:'hedge', name:'מטא־אלגוריתם: שקלול לפי הצלחה', how:'משקלל את כל השיטות. אחרי כל הגרלה, שיטה שתפסה יותר מקבלת משקל גדול יותר', meta:true},
+  {id:'experts', name:'מטא־אלגוריתם: ועדת מומחים', how:'5 השיטות שהצליחו הכי הרבה ב־100 ההגרלות האחרונות מצביעות יחד', meta:true},
   {id:'leader', name:'מטא־אלגוריתם: עוקב אחרי המוביל', how:'משתמש בשיטה שהצליחה הכי הרבה ב־50 ההגרלות האחרונות', meta:true},
   {id:'ens', name:'אנסמבל (ממוצע דירוגים)', how:'ממוצע הדירוגים של כל השיטות, בלי למידה', meta:true},
   {id:'rnd', name:'אקראי (קו בסיס)', how:'בחירה אקראית, לשם השוואה'},
@@ -1327,12 +1352,36 @@ function trainLogit(rows){ /* rows: {z, y[37]} ; plain gradient descent with L2 
     for(let k=0;k<=K;k++) w[k]-=lr*(g[k]/m+(k<K?l2*w[k]:0)); }
   return w; }
 const logitScore=(w,z)=>{ const K=LAB_FEATS.length, o=new Float64Array(N_MAIN+1); for(let x=1;x<=N_MAIN;x++){ let s=w[K]; for(let k=0;k<K;k++) s+=w[k]*z[LAB_FEATS[k]][x]; o[x]=s; } return o; };
+function trainMLP(rows){ /* 13 -> 8 (tanh) -> 1 (sigmoid), plain SGD */
+  const K=LAB_FEATS.length, H=8, r=seeded(12345), W1=[...Array(H)].map(()=>Float64Array.from({length:K+1},()=>(r()-.5)*.4)), W2=Float64Array.from({length:H+1},()=>(r()-.5)*.4);
+  const x=new Float64Array(K), hid=new Float64Array(H), lr=0.02;
+  for(let ep=0;ep<12;ep++) for(const row of rows) for(let n=1;n<=N_MAIN;n++){
+    for(let k=0;k<K;k++) x[k]=row.z[LAB_FEATS[k]][n];
+    for(let j=0;j<H;j++){ let s=W1[j][K]; for(let k=0;k<K;k++) s+=W1[j][k]*x[k]; hid[j]=Math.tanh(s); }
+    let o=W2[H]; for(let j=0;j<H;j++) o+=W2[j]*hid[j]; const p=1/(1+Math.exp(-o)), e=p-row.y[n];
+    for(let j=0;j<H;j++){ const gh=e*W2[j]*(1-hid[j]*hid[j]); W2[j]-=lr*e*hid[j]; for(let k=0;k<K;k++) W1[j][k]-=lr*gh*x[k]; W1[j][K]-=lr*gh; }
+    W2[H]-=lr*e; }
+  return {W1,W2,H,K}; }
+function mlpScore(m,z){ const o=new Float64Array(N_MAIN+1), hid=new Float64Array(m.H);
+  for(let n=1;n<=N_MAIN;n++){ for(let j=0;j<m.H;j++){ let s=m.W1[j][m.K]; for(let k=0;k<m.K;k++) s+=m.W1[j][k]*z[LAB_FEATS[k]][n]; hid[j]=Math.tanh(s); }
+    let v=m.W2[m.H]; for(let j=0;j<m.H;j++) v+=m.W2[j]*hid[j]; o[n]=v; } return o; }
+function trainBoost(rows){ /* gradient-boosted decision stumps on the same signals */
+  const K=LAB_FEATS.length, N=rows.length*N_MAIN, X=[...Array(K)].map(()=>new Float64Array(N)), y=new Float64Array(N); let i=0;
+  for(const row of rows) for(let n=1;n<=N_MAIN;n++){ for(let k=0;k<K;k++) X[k][i]=row.z[LAB_FEATS[k]][n]; y[i++]=row.y[n]; }
+  const base=Math.log((PICK/N_MAIN)/(1-PICK/N_MAIN)), F=new Float64Array(N).fill(base), stumps=[], TH=[-1,-.5,0,.5,1];
+  for(let m=0;m<30;m++){ const g=new Float64Array(N); for(let j=0;j<N;j++) g[j]=y[j]-1/(1+Math.exp(-F[j]));
+    let best=null;
+    for(let k=0;k<K;k++) for(const th of TH){ let sl=0,nl=0,sr=0,nr=0; for(let j=0;j<N;j++){ if(X[k][j]<=th){ sl+=g[j]; nl++; } else { sr+=g[j]; nr++; } }
+      const gain=(nl?sl*sl/nl:0)+(nr?sr*sr/nr:0); if(!best||gain>best.gain) best={k,th,l:nl?sl/nl:0,r:nr?sr/nr:0,gain}; }
+    best.l*=4*0.3; best.r*=4*0.3; stumps.push(best); for(let j=0;j<N;j++) F[j]+=X[best.k][j]<=best.th?best.l:best.r; }
+  return {base,stumps}; }
+function boostScore(m,z){ const o=new Float64Array(N_MAIN+1); for(let n=1;n<=N_MAIN;n++){ let v=m.base; for(const s of m.stumps) v+=z[LAB_FEATS[s.k]][n]<=s.th?s.l:s.r; o[n]=v; } return o; }
 const sortNums=a=>a.slice().sort((p,q)=>p-q);
 /* base predictions + the rank ensemble + random */
-function predictBase(S, w, seed){
+function predictBase(S, M, seed){ const w=M.w;
   const out={}, ranks=new Float64Array(N_MAIN+1), z=labFeatures(S);
   BASE.forEach(a=>{ let nums;
-    if(a.id==='ml'){ const ml=logitScore(w,z), o=topK(ml,N_MAIN); o.forEach((x,i)=>ranks[x]+=i); nums=o.slice(0,6); }
+    if(a.id==='ml'||a.id==='mlp'||a.id==='boost'){ const sc=a.id==='ml'?logitScore(w,z):a.id==='mlp'?mlpScore(M.mlp,z):boostScore(M.boost,z), o=topK(sc,N_MAIN); o.forEach((x,i)=>ranks[x]+=i); nums=o.slice(0,6); }
     else if(a.pick){ nums=a.pick(S); }
     else { const o=topK(a.score(S),N_MAIN); o.forEach((x,i)=>ranks[x]+=i); nums=o.slice(0,6); }
     out[a.id]={nums:sortNums(nums), strong:topK(a.strong(S),1,N_STRONG)[0]}; });
@@ -1347,6 +1396,9 @@ function hedgeVote(pr, W, S){ const v=new Float64Array(N_MAIN+1), sv=new Float64
   for(let x=1;x<=N_MAIN;x++) v[x]+=S.f100[x]*1e-6;
   return {nums:sortNums(topK(v,6)), strong:topK(sv,1,N_STRONG)[0], votes:v}; }
 const HEDGE_ETA=0.1;
+function committee(pr,recent,S){ const top=BASE.map(a=>[a.id,recent[a.id].reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1]).slice(0,5).map(x=>x[0]);
+  const v=new Float64Array(N_MAIN+1), sv=new Float64Array(N_STRONG+1); top.forEach(id=>{ pr[id].nums.forEach(x=>v[x]++); sv[pr[id].strong]++; });
+  for(let x=1;x<=N_MAIN;x++) v[x]+=S.f100[x]*1e-6; return {nums:sortNums(topK(v,6)), strong:topK(sv,1,N_STRONG)[0], from:top}; }
 let LAB=null, labRunning=false;
 async function runLab(){
   if(labRunning || (LAB && LAB.ver===dataVer())) return renderLab(); labRunning=true;
@@ -1354,21 +1406,24 @@ async function runLab(){
   /* the model trains only on draws older than the warm-up and test draws */
   const rows=[];
   for(let t=T+WARM; t<T+WARM+TRAIN && t+1<cur.length-100; t++){ const S=labSignals(cur.slice(t+1)); const y=new Float64Array(N_MAIN+1); cur[t].nums.forEach(x=>y[x]=1); rows.push({z:labFeatures(S),y}); if(t%40===0){ prog.style.width=(30*(t-T-WARM)/TRAIN)+'%'; await new Promise(r=>setTimeout(r)); } }
-  const w=trainLogit(rows);
+  prog.style.width='32%'; await new Promise(r=>setTimeout(r));
+  const w=trainLogit(rows), M={w, mlp:trainMLP(rows), boost:trainBoost(rows)};
   const res={}; ALGOS.forEach(a=>res[a.id]={hits:[],s:0,c3:0,c4:0,c5:0,best:0});
   const W={}; BASE.forEach(a=>W[a.id]=1); const recent={}; BASE.forEach(a=>recent[a.id]=[]);
   const last={};
   /* warm-up draws teach the meta-algorithms; only the last T draws are scored */
-  for(let t=T+WARM-1;t>=0;t--){ const S=labSignals(cur.slice(t+1)), pr=predictBase(S,w,cur[t].id||t), d=cur[t];
+  for(let t=T+WARM-1;t>=0;t--){ const S=labSignals(cur.slice(t+1)), pr=predictBase(S,M,cur[t].id||t), d=cur[t];
     pr.hedge=hedgeVote(pr,W,S);
-    const lead=BASE.map(a=>[a.id,recent[a.id].reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1])[0][0]; pr.leader={...pr[lead], from:lead};
+    const lead=BASE.map(a=>[a.id,recent[a.id].slice(-50).reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1])[0][0]; pr.leader={...pr[lead], from:lead};
+    pr.experts=committee(pr,recent,S);
     const hitsOf=p=>p.nums.filter(x=>d.nums.includes(x)).length;
     if(t<T) ALGOS.forEach(a=>{ const p=pr[a.id], h=hitsOf(p), r=res[a.id]; r.hits.push(h); r.s+=p.strong===d.strong; r.c3+=h>=3; r.c4+=h>=4; r.c5+=h>=5; r.best=Math.max(r.best,h); if(t===0) last[a.id]={...p,h,sHit:p.strong===d.strong}; });
-    BASE.forEach(a=>{ const h=hitsOf(pr[a.id]); W[a.id]*=Math.exp(HEDGE_ETA*(h-E)); recent[a.id].push(h); if(recent[a.id].length>50) recent[a.id].shift(); });
+    BASE.forEach(a=>{ const h=hitsOf(pr[a.id]); W[a.id]*=Math.exp(HEDGE_ETA*(h-E)); recent[a.id].push(h); if(recent[a.id].length>100) recent[a.id].shift(); });
     const tot=BASE.reduce((p,a)=>p+W[a.id],0); BASE.forEach(a=>W[a.id]*=BASE.length/tot);
     if(t%10===0){ prog.style.width=(30+70*(T+WARM-t)/(T+WARM))+'%'; await new Promise(r=>setTimeout(r)); } }
-  const S=labSignals(cur), next=predictBase(S,w,cur[0].id+1); next.hedge=hedgeVote(next,W,S);
-  const lead=BASE.map(a=>[a.id,recent[a.id].reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1])[0][0]; next.leader={...next[lead], from:lead};
+  const S=labSignals(cur), next=predictBase(S,M,cur[0].id+1); next.hedge=hedgeVote(next,W,S);
+  const lead=BASE.map(a=>[a.id,recent[a.id].slice(-50).reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1])[0][0]; next.leader={...next[lead], from:lead};
+  next.experts=committee(next,recent,S);
   LAB={ver:dataVer(), T, res, last, next, w, W:{...W}, lead}; labRunning=false; prog.style.width='100%';
   renderLab();
 }
