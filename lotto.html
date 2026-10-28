@@ -421,6 +421,28 @@ html.no-motion .tab-ink{transition:none}
 .jr-row .h{font-family:var(--display);font-size:24px;line-height:1;min-width:46px}
 .ok{color:var(--good)} .warn{color:var(--bad)}
 .crack-tbl td:nth-child(3),.crack-tbl td:nth-child(4){white-space:nowrap}
+#labCharts{--s1:#2340c8;--s2:#d52b3a;--s3:#14936a;--vz-grid:color-mix(in srgb,var(--ink) 9%,transparent);--vz-axis:var(--muted)}
+@media (prefers-color-scheme: dark){ :root:where(:not([data-theme="light"])) #labCharts{--s1:#7184f5;--s2:#f04f5c;--s3:#199e70} }
+:root[data-theme="dark"] #labCharts{--s1:#7184f5;--s2:#f04f5c;--s3:#199e70}
+#labCharts .chartbox{overflow-x:auto}
+@media (max-width:640px){ #labCharts .vz{min-width:640px} }
+.swipe{display:none;font-size:12px;color:var(--muted);margin:2px 0 4px}
+@media (max-width:640px){ .swipe{display:block} }
+.vz{width:100%;height:auto;display:block;overflow:visible;font-family:'IBM Plex Sans Hebrew',sans-serif}
+.vz text{fill:var(--vz-axis);font-size:11px}
+.vz .lab{fill:var(--ink);font-size:11.5px;font-weight:700}
+.vz .grid{stroke:var(--vz-grid);stroke-width:1}
+.vz .bar{fill:var(--s1);opacity:.28;transition:opacity .15s}
+.vz .bar.on{opacity:1}
+.vz .hit:hover .bar{opacity:.55}.vz .hit:hover .bar.on{opacity:1}
+.vz .ref{stroke:var(--muted);stroke-width:1.5;stroke-dasharray:4 4;fill:none}
+.vz .band{fill:var(--muted);opacity:.13}
+.vz .ln{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round}
+.vz .col rect{fill:transparent}
+.vz .col line{stroke:var(--ink);stroke-width:1;opacity:0}
+.vz .col:hover line{opacity:.35}
+.vz-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;margin:4px 0 0;direction:rtl}
+.vz-legend i{display:inline-block;width:14px;height:3px;border-radius:2px;vertical-align:middle;margin-inline-end:6px}
 .reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
 html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
 html.no-motion .sc svg path{stroke-dashoffset:0}
@@ -614,6 +636,15 @@ html.hc .sc{border-color:#000;color:#000}
   <section class="page" id="p-lab">
     <div class="sec-head"><div><h2>מעבדת אלגוריטמים</h2><p>70 שיטות חיזוי, מהפשוטות ועד רשת עצבית ואלגוריתם גנטי, ושלושה מטא־אלגוריתמים שעובדים על כולן. כל אחת מציגה את הניחוש שלה להגרלה הקרובה, ואת התוצאות האמיתיות שלה ב־200 ההגרלות האחרונות, כשבכל הגרלה היא ראתה רק את מה שהיה ידוע לפניה.</p></div></div>
     <div class="card meta-card" id="labPick"></div>
+    <div class="card" style="margin-top:16px" id="labCharts">
+      <h3>גרף הניחושים להגרלה הקרובה</h3>
+      <p class="muted small" style="margin:-4px 0 8px">כמה מתוך כל השיטות בחרו כל מספר. העמודות המודגשות הן 6 המספרים של הניחוש המשולב. קו המקווקו הוא מה שהיה יוצא אם השיטות היו מתפזרות שווה.</p>
+      <div class="swipe">גללו את הגרף הצידה ↔</div><div class="chartbox" id="vzVotes"></div>
+      <h3 style="margin-top:22px">כמה מספרים הניחושים תפסו, מצטבר</h3>
+      <p class="muted small" style="margin:-4px 0 8px">100 ההגרלות האחרונות. הקו האפור הוא מה שצפוי במזל, והרצועה סביבו היא הטווח הרגיל של המזל (±2σ). קו שנשאר בתוך הרצועה מתנהג כמו מזל.</p>
+      <div class="swipe">גללו את הגרף הצידה ↔</div><div class="chartbox" id="vzTrack"></div>
+      <details style="margin-top:10px"><summary class="small">הצג כטבלה</summary><div class="scroll" style="max-height:260px"><table class="tbl" id="vzTable"></table></div></details>
+    </div>
     <div class="card" id="labGoal" style="margin-top:16px"></div>
     <div class="card" style="margin-top:16px">
       <div class="sec-head" style="margin:0 0 10px;border:0;padding:0"><div><h3>כל האלגוריטמים, ממוינים לפי התוצאות</h3><p class="small" id="labMeta">מחשב…</p></div></div>
@@ -955,6 +986,8 @@ const sumOf = a => a.reduce((x,y)=>x+y,0);
 function toast(msg){ const t=$('#toast'); t.textContent=msg; t.classList.add('on'); clearTimeout(toast._t); toast._t=setTimeout(()=>t.classList.remove('on'),3000); }
 const tip = $('#tip');
 document.addEventListener('mousemove',e=>{ const el=e.target.closest&&e.target.closest('[data-tip]'); if(!el){ tip.style.opacity=0; return; } tip.textContent=el.dataset.tip; tip.style.opacity=1; const w=tip.offsetWidth; tip.style.left=Math.min(innerWidth-w-8,Math.max(8,e.clientX-w/2))+'px'; tip.style.top=(e.clientY-38)+'px'; });
+/* on touch screens a tap shows the same tooltip */
+document.addEventListener('pointerdown',e=>{ if(e.pointerType==='mouse') return; const el=e.target.closest&&e.target.closest('[data-tip]'); if(!el){ tip.style.opacity=0; return; } tip.textContent=el.dataset.tip; tip.style.opacity=1; const w=tip.offsetWidth; tip.style.left=Math.min(innerWidth-w-8,Math.max(8,e.clientX-w/2))+'px'; tip.style.top=Math.max(8,e.clientY-48)+'px'; });
 
 /* SVG bar chart. bars: [{label,value,tip,cls}], expected: number (flat line) or array (per bar), curve: array */
 const CHARTS = new Map();
@@ -1497,7 +1530,7 @@ let LAB=null, labRunning=false;
 async function runLab(){
   if(labRunning || (LAB && LAB.ver===dataVer())) return renderLab();
   /* results depend only on the data, so a finished run is kept in this browser until the next draw */
-  try{ const c=JSON.parse(ls.get('lotto-lab-v3')||'null'); if(c && c.ver===dataVer()){ LAB=c; return renderLab(); } }catch(e){}
+  try{ const c=JSON.parse(ls.get('lotto-lab-v4')||'null'); if(c && c.ver===dataVer()){ LAB=c; return renderLab(); } }catch(e){}
   labRunning=true; $('#labMeta').textContent='מחשב את כל השיטות על 300 הגרלות. זה לוקח בערך 15 שניות, ורק בפעם הראשונה אחרי כל הגרלה.';
   const T=Math.min(200, cur.length-900), WARM=100, TRAIN=400, prog=$('#labProg i'), E=PICK*PICK/N_MAIN;
   /* the model trains only on draws older than the warm-up and test draws */
@@ -1521,9 +1554,9 @@ async function runLab(){
   const S=labSignals(cur), next=predictBase(S,M,cur[0].id+1); next.hedge=hedgeVote(next,W,S);
   const lead=BASE.map(a=>[a.id,recent[a.id].slice(-50).reduce((p,q)=>p+q,0)]).sort((p,q)=>q[1]-p[1])[0][0]; next.leader={...next[lead], from:lead};
   next.experts=committee(next,recent,S);
-  delete next.hedge.votes;
+  next.hedge.votes=[...next.hedge.votes];
   LAB={ver:dataVer(), T, res, last, next, w:[...w], W:{...W}, lead}; labRunning=false; prog.style.width='100%';
-  try{ ls.set('lotto-lab-v3',JSON.stringify(LAB)); }catch(e){}
+  try{ ls.set('lotto-lab-v4',JSON.stringify(LAB)); }catch(e){}
   renderLab();
 }
 /* five tickets for the next draw from the meta-algorithm: its own pick, then the best-weighted methods, kept apart from each other */
@@ -1582,9 +1615,53 @@ function renderLab(){
     </tbody></table></div>
     <p class="small" style="margin:10px 0 0">גם כאן כל שקל קונה את אותו סיכוי בממוצע. כיסוי לא משנה את התוחלת, רק מרכז את הכסף בהגרלה אחת. אפשר לבנות טופס שיטתי בעמוד <a href="#" data-goto="cart">טפסים ועלות</a>.</p>`;
   $('#labMore').onclick=()=>{ LAB.showAll=!LAB.showAll; renderLab(); };
+  renderLabCharts();
   goalCalc();
   if(typeof mountSay==='function') mountSay();
   countUps($('#p-lab'));
+}
+
+/* ===== charts: votes for the next draw, and cumulative hits against chance ===== */
+function renderLabCharts(){
+  const vb=$('#vzVotes'); if(!vb||!LAB) return;
+  const cnt=new Array(N_MAIN+1).fill(0); BASE.forEach(a=>LAB.next[a.id].nums.forEach(x=>cnt[x]++));
+  const pick=new Set(LAB.next.hedge.nums), W=720, H=230, m={l:30,r:8,t:18,b:26}, iw=W-m.l-m.r, ih=H-m.t-m.b;
+  const ymax=Math.max(4,Math.ceil(Math.max(...cnt)/5)*5), bw=iw/N_MAIN, y=v=>m.t+ih-(v/ymax)*ih, avg=BASE.length*PICK/N_MAIN;
+  let g=''; for(let v=0;v<=ymax;v+=Math.max(1,Math.round(ymax/5))) g+=`<line class="grid" x1="${m.l}" x2="${W-m.r}" y1="${y(v)}" y2="${y(v)}"/><text x="${m.l-6}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  let bars=''; for(let x=1;x<=N_MAIN;x++){ const x0=m.l+(x-1)*bw, h=Math.max(0,ih-(y(cnt[x])-m.t)), on=pick.has(x);
+    const tipTxt=`מספר ${x}: נבחר על ידי ${cnt[x]} מתוך ${BASE.length} שיטות${on?' · בניחוש המשולב':''}`;
+    bars+=`<g class="hit" data-tip="${tipTxt}"><rect x="${x0}" y="${m.t}" width="${bw}" height="${ih}" fill="transparent"/>`+
+      (h>0?`<path class="bar${on?' on':''}" d="M${x0+2},${m.t+ih} V${y(cnt[x])+Math.min(4,h)} Q${x0+2},${y(cnt[x])} ${x0+2+Math.min(4,(bw-4)/2)},${y(cnt[x])} H${x0+bw-2-Math.min(4,(bw-4)/2)} Q${x0+bw-2},${y(cnt[x])} ${x0+bw-2},${y(cnt[x])+Math.min(4,h)} V${m.t+ih} Z"/>`:'')+
+      (on?`<text class="lab" x="${x0+bw/2}" y="${y(cnt[x])-5}" text-anchor="middle">${cnt[x]}</text>`:'')+
+      `<text x="${x0+bw/2}" y="${H-8}" text-anchor="middle" style="${on?'fill:var(--ink);font-weight:700':''}">${x}</text></g>`; }
+  vb.innerHTML=`<svg class="vz" viewBox="0 0 ${W} ${H}" role="img" aria-label="מספר השיטות שבחרו כל מספר להגרלה הקרובה">${g}${bars}<line class="ref" x1="${m.l}" x2="${W-m.r}" y1="${y(avg)}" y2="${y(avg)}"/></svg>
+    <div class="vz-legend"><span><i style="background:var(--s1)"></i>בניחוש המשולב</span><span><i style="background:var(--s1);opacity:.28"></i>שאר המספרים</span><span><i style="background:none;border-top:2px dashed var(--muted);height:0"></i>פיזור שווה (${fmt(avg,1)} שיטות לכל מספר)</span></div>`;
+
+  /* cumulative hits */
+  const N=Math.min(100, LAB.res.hedge.hits.length, SMART_TR.length);
+  const days=cur.slice(0,N).reverse(), S=[
+    {k:'hedge', name:'הניחוש המשולב', c:'var(--s1)', v:LAB.res.hedge.hits.slice(-N)},
+    {k:'smart', name:'הטופס המושכל', c:'var(--s2)', v:SMART_TR.slice(0,N).reverse().map(x=>x.h)},
+    {k:'rnd', name:'בחירה אקראית', c:'var(--s3)', v:LAB.res.rnd.hits.slice(-N)}];
+  S.forEach(s=>{ let a=0; s.cum=s.v.map(h=>a+=h); });
+  const E=PICK*PICK/N_MAIN, VAR=PICK*(PICK/N_MAIN)*(1-PICK/N_MAIN)*(N_MAIN-PICK)/(N_MAIN-1);
+  const H2=260, m2={l:34,r:140,t:12,b:26}, iw2=W-m2.l-m2.r, ih2=H2-m2.t-m2.b, top=Math.max(...S.map(s=>s.cum[N-1]), E*N+2*Math.sqrt(VAR*N))*1.05;
+  const X=i=>m2.l+(i+1)/N*iw2, Y=v=>m2.t+ih2-v/top*ih2;
+  let g2=''; const step=top>80?20:10; for(let v=0;v<=top;v+=step) g2+=`<line class="grid" x1="${m2.l}" x2="${m2.l+iw2}" y1="${Y(v)}" y2="${Y(v)}"/><text x="${m2.l-6}" y="${Y(v)+4}" text-anchor="end">${v}</text>`;
+  [0,Math.floor(N/2),N-1].forEach(i=>{ g2+=`<text x="${X(i)}" y="${H2-8}" text-anchor="middle">${dateHe(days[i].date).slice(0,5)}</text>`; });
+  let up='', lo=''; for(let i=0;i<N;i++){ const e=E*(i+1), sd=Math.sqrt(VAR*(i+1)); up+=`${i?'L':'M'}${X(i)},${Y(e+2*sd)}`; lo=`L${X(i)},${Y(Math.max(0,e-2*sd))}`+lo; }
+  const band=`<path class="band" d="${up}${lo}Z"/><path class="ref" d="M${X(0)},${Y(E)} L${X(N-1)},${Y(E*N)}"/>`;
+  const lines=S.map(s=>`<path class="ln" style="stroke:${s.c}" d="${s.cum.map((v,i)=>`${i?'L':'M'}${X(i)},${Y(v)}`).join('')}"/>`).join('');
+  /* end labels, nudged apart so they never overlap */
+  const ends=[...S.map(s=>({t:`${s.name} ${s.cum[N-1]}`,y:Y(s.cum[N-1]),c:'lab'})),{t:`מזל ${fmt(E*N,0)}`,y:Y(E*N),c:''}].sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++) if(ends[i].y-ends[i-1].y<15) ends[i].y=ends[i-1].y+15;
+  const lbl=ends.map(e=>`<text class="${e.c}" x="${X(N-1)+8}" y="${e.y+4}">${e.t}</text>`).join('');
+  let cols=''; for(let i=0;i<N;i++){ const x0=m2.l+i/N*iw2, d=days[i], t=`${dateHe(d.date)} · `+S.map(s=>`${s.name}: ${s.v[i]} (סה״כ ${s.cum[i]})`).join(' · ')+` · מזל: ${fmt(E*(i+1),0)}`;
+    cols+=`<g class="col" data-tip="${t}"><rect x="${x0}" y="${m2.t}" width="${iw2/N+.5}" height="${ih2}"/><line x1="${X(i)}" x2="${X(i)}" y1="${m2.t}" y2="${m2.t+ih2}"/></g>`; }
+  $('#vzTrack').innerHTML=`<svg class="vz" viewBox="0 0 ${W} ${H2}" role="img" aria-label="מספרים שנתפסו במצטבר מול הצפוי במזל">${g2}${band}${lines}${lbl}${cols}</svg>
+    <div class="vz-legend">${S.map(s=>`<span><i style="background:${s.c}"></i>${s.name}</span>`).join('')}<span><i style="background:var(--muted);opacity:.5"></i>צפוי במזל ±2σ</span></div>`;
+  $('#vzTable').innerHTML=`<thead><tr><th>הגרלה</th>${S.map(s=>`<th>${s.name}</th>`).join('')}<th>מזל (מצטבר)</th></tr></thead><tbody>`+
+    days.map((d,i)=>`<tr><td class="num">${dateHe(d.date)}</td>${S.map(s=>`<td class="num">${s.v[i]} <span class="muted">(${s.cum[i]})</span></td>`).join('')}<td class="num">${fmt(E*(i+1),1)}</td></tr>`).reverse().join('')+'</tbody>';
 }
 
 /* ===== goal calculator: what reaching a chosen probability really takes ===== */
@@ -1712,7 +1789,7 @@ function smartTrack(N){
 }
 const PEN_PATHS=['M50 8C74 6 94 22 92 48C90 76 66 94 44 90C20 86 6 66 10 42C13 22 30 10 56 11','M48 7C76 8 95 28 91 54C87 78 62 93 40 88C17 83 5 60 11 38C16 19 34 8 60 12','M52 9C78 10 93 30 90 55C86 80 58 92 37 86C15 80 7 57 13 36C19 17 38 8 58 13'];
 function penSvg(i){ const d=PEN_PATHS[i%3]; return `<svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><path d="${d}" pathLength="1" style="--len:1;--d:${(.15+i*.12).toFixed(2)}s"/></svg>`; }
-let SMART=null, SMART_LAST=null, SMART_STATS=null;
+let SMART=null, SMART_LAST=null, SMART_STATS=null, SMART_TR=[];
 function renderSmart(){
   const slip=$('#slip'); if(!slip) return;
   if(cur.length<201||!cur[0].id){ slip.innerHTML='<div class="muted">צריך לפחות 200 הגרלות כדי לבנות טופס.</div>'; $('#score').innerHTML=''; $('#diag').innerHTML=''; return; }
@@ -1733,7 +1810,7 @@ function renderSmart(){
     </ul>`;
   $('#slipCopy').onclick=()=>{ const txt=`${t.nums.join(' ')} | חזק ${t.strong}`; (navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast('הטופס הועתק'),()=>toast('ההעתקה נכשלה')); };
 
-  const tr=smartTrack(100); SMART_LAST=tr[0]||null; const N=tr.length, hits=sumOf(tr.map(x=>x.h)), g3=tr.filter(x=>x.h>=3).length, sh=tr.filter(x=>x.s).length;
+  const tr=smartTrack(100); SMART_LAST=tr[0]||null; SMART_TR=tr; const N=tr.length, hits=sumOf(tr.map(x=>x.h)), g3=tr.filter(x=>x.h>=3).length, sh=tr.filter(x=>x.s).length;
   const eh=N*PICK*PICK/N_MAIN, sdh=Math.sqrt(N*PICK*(PICK/N_MAIN)*(1-PICK/N_MAIN)*(N_MAIN-PICK)/(N_MAIN-1)), zz=(hits-eh)/(sdh||1);
   $('#score').innerHTML=`<div class="eyebrow">הטופס המושכל מול התוצאות</div><h3>${fmt(N)} ההגרלות האחרונות</h3>
     <p class="muted small" style="margin:6px 0 0">לפני כל הגרלה בניתי את הטופס רק ממה שהיה ידוע עד אז, ואז בדקתי מול מה שיצא.</p>
