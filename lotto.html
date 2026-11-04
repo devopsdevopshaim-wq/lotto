@@ -494,6 +494,10 @@ html.no-motion .picker button svg path{stroke-dashoffset:0}
 /* small balls: a regular face reads better than the condensed display face */
 .ball.xs{font-family:'IBM Plex Sans Hebrew',sans-serif;font-size:11px;font-weight:700;padding-top:0}
 .tbl .ball.xs{font-size:10.5px}
+.wbar{display:grid;grid-template-columns:150px minmax(0,1fr) 54px;gap:10px;align-items:center;font-size:13.5px;padding:4px 0}
+.wbar i{display:block;height:10px;border-radius:5px;background:var(--pen)}
+.wbar i.lo{background:color-mix(in srgb,var(--pen) 35%,transparent)}
+@media (max-width:480px){ .wbar{grid-template-columns:110px minmax(0,1fr) 46px} }
 .reading{outline:3px solid color-mix(in srgb,var(--pen) 60%,transparent);outline-offset:4px;border-radius:12px}
 html.no-motion *,html.no-motion *::before,html.no-motion *::after{animation:none!important;transition:none!important}
 html.no-motion .sc svg path{stroke-dashoffset:0}
@@ -530,6 +534,7 @@ html.hc .sc{border-color:#000;color:#000}
       <button data-p="gaps">פערים</button>
       <button data-p="pairs">זוגות</button>
       <button data-p="dist">התפלגויות</button>
+      <button data-p="challenge">האתגר</button>
       <button data-p="lab">אלגוריטמים</button>
       <button data-p="backtest">בדיקה לאחור</button>
       <button data-p="journal">יומן ופיצוח</button>
@@ -682,6 +687,17 @@ html.hc .sc{border-color:#000;color:#000}
         </div>
       </div>
     </div>
+  </section>
+
+  <!-- THE SELF-LEARNING CHALLENGE -->
+  <section class="page" id="p-challenge">
+    <div class="sec-head"><div><h2>האתגר: מודל שלומד לבד</h2><p>12 "מומחים" (שיטות ניחוש) מצביעים על הטופס. אחרי כל הגרלה כל מומחה מקבל ציון, ומי שתפס יותר מקבל משקל גדול יותר בהגרלה הבאה. הניחוש נרשם ב־GitHub עם חותמת זמן לפני ההגרלה, כך שאי אפשר לשנות אותו אחרי התוצאה.</p></div></div>
+    <div class="grid2">
+      <div class="slip" id="chNext"><div class="muted">טוען…</div></div>
+      <div class="card" id="chScore"></div>
+    </div>
+    <div class="card" style="margin-top:16px" id="chWeights"></div>
+    <div class="card" style="margin-top:16px" id="chRounds"></div>
   </section>
 
   <!-- GUESS JOURNAL AND RANDOMNESS TESTS -->
@@ -2017,6 +2033,41 @@ function setupFx(){
 function liveNow(){ const p=ilParts(new Date()), wd=p.weekday; const hm=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Jerusalem',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date()); const [h,m]=hm.split(':').map(Number), mins=h*60+m;
   return (wd==='Tue'||wd==='Sat') && mins>=22*60+50 && mins<=23*60+50; }
 
+/* ===== the self-learning challenge (learn/state.json, written by scripts/learn.py after every draw) ===== */
+const EXPERT_NAME={hot_all:'חמים · כל ההיסטוריה',hot100:'חמים · 100 אחרונות',hot30:'חמים · 30 אחרונות',cold100:'קרים',gap:'הכי הרבה זמן לא יצא',due:'מדד "מגיע לו"',ewma:'דעיכה אקספוננציאלית',markov:'שרשרת מרקוב',pairs:'זיקת זוגות',repeat:'חזרה מההגרלה האחרונה',knn:'שכנים קרובים (KNN)',random:'אקראי'};
+let CH=null;
+async function loadChallenge(){ try{ const r=await fetch('learn/state.json?t='+Date.now(),{cache:'no-store'}); if(r.ok) CH=await r.json(); }catch(e){} renderChallenge(); }
+function renderChallenge(){
+  const nx=$('#chNext'); if(!nx) return;
+  if(!CH){ nx.innerHTML='<div class="muted">האתגר עוד לא התחיל. הוא ירשום את הניחוש הראשון אחרי ההגרלה הבאה.</div>'; return; }
+  const n=CH.next, R=CH.rounds||[], E=PICK*PICK/N_MAIN, p3=p3plus(), when=n?new Date(n.registered_at):null;
+  const fmtWhen=d=>d.toLocaleString('he-IL',{timeZone:'Asia/Jerusalem',day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  nx.innerHTML=n?`<div class="slip-head"><div><div class="slip-label">הניחוש הרשום</div><h2>להגרלה ${n.draw}</h2></div><div class="for">נרשם ב־<b>${fmtWhen(when)}</b><br>אחרי הגרלה ${n.after}, לפני ההגרלה הבאה</div></div>
+    <div class="balls start" style="margin:6px 0 10px">${n.nums.map(x=>ball(x,'')).join('')}<span class="plus">+</span>${sball(n.strong,'')}</div>
+    <p class="small muted" style="margin:0">הטופס הוא ההצבעה המשוקללת של 12 המומחים. <a href="https://github.com/devopsdevopshaim-wq/lotto/commits/main/learn/state.json" target="_blank" rel="noopener">היסטוריית הרישום ב־GitHub</a> מראה מתי כל ניחוש נרשם.</p>
+    <div class="ctrl" style="margin-top:10px"><button class="btn" id="chQR" type="button">QR לבדיקה</button><button class="btn" id="chCopy" type="button">העתק</button></div>`:'<div class="muted">ממתין לרישום הניחוש הבא.</div>';
+  if(n){ $('#chQR').onclick=()=>showQR([{nums:n.nums,strong:n.strong}],`האתגר · הגרלה ${n.draw}`);
+    $('#chCopy').onclick=()=>(navigator.clipboard?navigator.clipboard.writeText(`${n.nums.join(' ')} | חזק ${n.strong}`):Promise.reject()).then(()=>toast('הטופס הועתק'),()=>toast('ההעתקה נכשלה')); }
+  const k=R.length, hits=R.reduce((a,r)=>a+r.hits,0), g3=R.filter(r=>r.hits>=3).length, sh=R.filter(r=>r.strong_hit).length;
+  const sd=Math.sqrt(PICK*(PICK/N_MAIN)*(1-PICK/N_MAIN)*(N_MAIN-PICK)/(N_MAIN-1)), z=k?(hits-E*k)/(sd*Math.sqrt(k)):0;
+  $('#chScore').innerHTML=`<div class="eyebrow">לוח התוצאות</div><h3 style="font-family:var(--display);font-size:34px;line-height:1">${k?(k===1?'סיבוב אחד עד עכשיו':`${k} סיבובים עד עכשיו`):'האתגר מתחיל עכשיו'}</h3>
+    ${k?`<div class="tally">
+      <div><b>${hits}</b><span>מספרים שנתפסו</span><em>מזל: ${fmt(E*k,1)}</em></div>
+      <div><b>${g3}</b><span>פעמים 3 ומעלה</span><em>מזל: ${fmt(p3*k,1)}</em></div>
+      <div><b>${sh}</b><span>פעמים החזק עלה</span><em>מזל: ${fmt(k/N_STRONG,1)}</em></div></div>
+      <p class="small" style="margin:0">${k<20?`עוד מוקדם לשפוט: אחרי ${k===1?'סיבוב אחד':k+' סיבובים'} כל תוצאה יכולה להיות מזל. ממשיכים לעקוב.`:Math.abs(z)<2?`אחרי ${k} סיבובים המודל בטווח המזל (${z>=0?'+':''}${fmt(z,1)}σ). הוא עוד לא מצא משהו שבאמת מנבא.`:z>0?`המודל מעל המזל (+${fmt(z,1)}σ). אם זה יישמר עוד הרבה סיבובים, זה יהיה ממצא אמיתי.`:`המודל מתחת למזל (${fmt(z,1)}σ).`}</p>`
+    :`<p class="small" style="margin:0">הניחוש הראשון נרשם להגרלה ${n?n.draw:''}. אחרי כל הגרלה הוא ייבדק כאן לבד, המשקלים יתעדכנו, וניחוש חדש יירשם. המטרה: לראות אם לאורך זמן הוא תופס יותר מהמזל.</p>`}`;
+  const W=CH.weights||{}, ws=Object.entries(W).sort((a,b)=>b[1]-a[1]), mx=Math.max(...ws.map(x=>x[1]));
+  $('#chWeights').innerHTML=`<h3>מה המודל למד עד עכשיו</h3><p class="muted small" style="margin:-4px 0 10px">המשקל של כל מומחה בהצבעה. התחיל מ־${CH.warmup_draws} הגרלות חימום, וממשיך להשתנות אחרי כל הגרלה. משקל 1 = ממוצע.</p>
+    ${ws.map(([id,w])=>`<div class="wbar"><span>${EXPERT_NAME[id]||id}</span><i class="${w<1?'lo':''}" style="width:${Math.max(2,100*w/mx)}%"></i><b class="num">${fmt(w,2)}</b></div>`).join('')}
+    <p class="small" style="margin:10px 0 0">המשקלים זזים לפי מי שתפס יותר לאחרונה. כשהמובילים מתחלפים מהגרלה להגרלה, זה סימן שהם רודפים אחרי מזל ולא אחרי דפוס.</p>`;
+  $('#chRounds').innerHTML=`<h3>כל הסיבובים</h3>${R.length?`<div class="scroll" style="max-height:none"><table class="tbl"><thead><tr><th>הגרלה</th><th>הניחוש מול התוצאה</th><th>תפס</th><th class="hide-m">המומחה הטוב בסיבוב</th></tr></thead><tbody>`+
+    R.slice().reverse().map(r=>{ const best=Object.entries(r.expert_hits).sort((a,b)=>b[1]-a[1])[0];
+      return `<tr><td class="num">${r.draw}<div class="muted small">${r.result.date}</div></td><td><div class="balls start">${r.nums.map(x=>ball(x,'xs'+(r.result.nums.includes(x)?' hit':''))).join('')}<span class="plus">+</span>${sball(r.strong,'xs'+(r.strong_hit?' hit':''))}</div></td><td class="num"><b>${r.hits}</b>${r.strong_hit?' + חזק':''}</td><td class="hide-m small">${EXPERT_NAME[best[0]]||best[0]} (${best[1]})</td></tr>`; }).join('')+'</tbody></table></div>'
+    :'<p class="muted small">עוד אין סיבובים. הראשון ייבדק אחרי ההגרלה הבאה.</p>'}`;
+  countUps($('#p-challenge'));
+}
+
 /* ===== informed ticket =====
    One ticket per draw, fixed for that draw: seeded by the draw number so it never changes after the fact
    and can be scored honestly. Mild lean to numbers drawn more often in the previous 1000 draws, then
@@ -2603,7 +2654,7 @@ function download(content,type,name){ const b=new Blob([content],{type}); const 
 
 /* ---------- events ---------- */
 const STATS_PAGES=['predict','overview','freq','gaps','pairs','dist'];
-const GROUPS={draw:['predict'], forms:['cart','gen','check'], stats:['overview','freq','gaps','pairs','dist'], algo:['lab','backtest','journal'], data:['data']};
+const GROUPS={draw:['predict'], forms:['cart','gen','check'], stats:['overview','freq','gaps','pairs','dist'], algo:['challenge','lab','backtest','journal'], data:['data']};
 const groupOf=p=>Object.keys(GROUPS).find(g=>GROUPS[g].includes(p))||'draw';
 const lastInGroup={};
 function syncGroups(p){ const g=groupOf(p); lastInGroup[g]=p;
@@ -2622,6 +2673,7 @@ function go(p, scroll=true){
   if(rb && sec){ if(p!=='predict' && STATS_PAGES.includes(p)){ const head=sec.querySelector(':scope>.sec-head'); if(head) head.after(rb); else sec.prepend(rb); } else if(rb.parentElement.id!=='hero') $('#hero').appendChild(rb); }
   if(p==='backtest') runBacktest();
   if(p==='lab') setTimeout(runLab,30);
+  if(p==='challenge') loadChallenge();
   if(p==='journal'){ renderJournal(); renderCrack(); renderWinners(); if(typeof mountSay==='function') mountSay(); countUps($('#p-journal')); }
   if(typeof renderCart==='function') renderCart();
   if(A11Y.auto && scroll) setTimeout(()=>{ const sec=$('#p-'+p); if(sec) say(pageSpeech(sec),sec.querySelector('.sec-head .say'),sec); },300);
