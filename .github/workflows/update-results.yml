@@ -24,6 +24,10 @@ jobs:
         run: python scripts/update_results.py
       - name: Score the challenge and register the next ticket
         run: python scripts/learn.py
+      - name: Email the update (Maton)
+        env:
+          MATON_API_KEY: ${{ secrets.MATON_API_KEY }}
+        run: python scripts/notify.py
       - name: Commit if changed
         run: |
           git add lotto.csv learn
